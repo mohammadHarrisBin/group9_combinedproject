@@ -1,0 +1,8 @@
+==================== STAGE A+ (FAST READER) ====================
+Total Trades Processed : 1000000
+BUY Signals Raised     : 2289
+SELL Signals Raised    : 2289
+Total Run Time         : 34792927794 ns (34792.928 ms)
+Time Per Trade         : 34792.93 ns/trade
+Throughput             : 28741.47 trades/sec
+================================================================

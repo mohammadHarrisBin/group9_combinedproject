@@ -1,0 +1,64 @@
+================================================================================
+                    SMA CROSSOVER SIGNAL GENERATOR LOGIC
+================================================================================
+
+1. WHAT IS AN SMA CROSSOVER SIGNAL?
+--------------------------------------------------------------------------------
+A Moving Average Crossover is a trend-following trading strategy that compares 
+a fast-moving average (Short SMA) against a slow-moving average (Long SMA) to 
+detect momentum shifts and generate trade triggers.
+
+- Short SMA (N = 3) : Reacts rapidly to recent price changes.
+- Long SMA  (N = 5) : Smooths out price noise to show the broader baseline trend.
+
+On every trade, we measure the price difference d_t:
+    d_t = Short_SMA_t - Long_SMA_t
+
+
+2. CROSSOVER MATH & SIGNAL TRIGGERS
+--------------------------------------------------------------------------------
+A signal is only triggered when the direction of d_t switches sign compared 
+to the previous trade difference (d_{t-1}):
+
+- BUY SIGNAL (+1)  : Bullish Crossover. Triggered when the Short SMA crosses 
+                     ABOVE the Long SMA.
+                     Mathematical Condition: (d_{t-1} <= 0) AND (d_t > 0)
+
+- SELL SIGNAL (-1) : Bearish Crossover. Triggered when the Short SMA crosses 
+                     BELOW the Long SMA.
+                     Mathematical Condition: (d_{t-1} >= 0) AND (d_t < 0)
+
+- NONE SIGNAL (0)  : No Crossover. Triggered when d_t remains on the same side 
+                     of zero as d_{t-1} (no sign flip occurred).
+
+
+3. STATEFUL IMPLEMENTATION IN C
+--------------------------------------------------------------------------------
+Because crossover detection requires comparing the CURRENT difference (d_t) 
+against the PREVIOUS difference (d_{t-1}), our C module maintains state across 
+trade iterations:
+
+    typedef struct {
+        double prev_diff; // Stores d_{t-1} from the previous trade
+        int initialized;  // Tracks whether the first comparison has occurred
+    } SignalState;
+
+Algorithmic Steps per Trade:
+1. Ensure both Short SMA and Long SMA windows are full.
+2. Compute curr_diff = short_sma - long_sma.
+3. IF initialized == 0:
+     - Set prev_diff = curr_diff, set initialized = 1, and return SIGNAL_NONE (0).
+4. ELSE:
+     - Check IF (prev_diff <= 0.0 && curr_diff > 0.0) -> Return SIGNAL_BUY (+1).
+     - Check ELSE IF (prev_diff >= 0.0 && curr_diff < 0.0) -> Return SIGNAL_SELL (-1).
+     - ELSE -> Return SIGNAL_NONE (0).
+5. Store prev_diff = curr_diff to prepare for the next incoming trade.
+
+
+4. WHY THIS IS LOW-LATENCY EFFICIENT
+--------------------------------------------------------------------------------
+- O(1) Time Complexity: Evaluating the signal requires only a floating-point 
+  subtraction, two conditional comparisons, and a variable assignment per trade.
+- Zero Memory Allocation: The state uses a tiny 16-byte structure on the stack 
+  without dynamic memory overhead.
+================================================================================

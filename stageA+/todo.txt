@@ -1,0 +1,76 @@
+===================================================================
+
+   WHY THE CUSTOM FAST READER (Stage A+) IS FASTER THAN TRADE_IO
+
+===================================================================
+1. ELIMINATING sscanf() OVERHEAD (Week 9 Optimization)
+
+-------------------------------------------------------------------
+
+- Default Reader (trade_io.c):
+
+  Uses standard library functions like sscanf() to parse CSV rows. 
+
+  sscanf() must parse format strings (e.g., "%lld,%lf,%lf...") at 
+
+  runtime, manage generic input buffers, and handle complex edge 
+
+  cases, introducing heavy runtime overhead.
+
+
+
+- Custom Fast Reader (fast_reader.c):
+
+  Uses simple inline functions (parse_long_long, parse_double) that 
+
+  walk the character array (const char *ptr) byte-by-byte. It 
+
+  converts ASCII characters directly to numbers via simple math 
+
+  (val * 10 + (*ptr - '0')) inside CPU registers, completely 
+
+  bypassing format-string parsing overhead.
+
+
+
+
+
+2. DIRECT POINTER MEMORY ACCESS (Week 8 Optimization)
+
+-------------------------------------------------------------------
+
+- Default Reader (trade_io.c):
+
+  Relies on individual getter function calls (trade_price(), 
+
+  trade_qty(), trade_time()) for every trade line processed.
+
+
+
+- Custom Fast Reader (fast_reader.c):
+
+  Uses direct pointer parameters (*ts, *price, *qty, *is_buy) passed 
+
+  into a single read_trade() call. This writes parsed data directly 
+
+  into local memory addresses in a single pass, avoiding extra 
+
+  function-call overhead and stack-frame creation for every field.
+
+
+
+
+
+3. CACHE EFFICIENCY & REDUCED BRANCHING
+
+-------------------------------------------------------------------
+
+- Parsing strings in-place line-by-line without creating temporary 
+
+  string copies or allocating dynamic heap memory allows CPU caches 
+
+  (L1/L2) to stay warm, minimizing memory bottlenecks and branch 
+
+  mispredictions.
+
+===================================================================

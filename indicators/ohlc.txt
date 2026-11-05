@@ -1,0 +1,73 @@
+(Its a candlestick)
+(We are basically gonna use this to plot our graphs later)
+
+High (highest trade price in that 1 second)
+           |
+     +-----------+ 
+     |           | <-- Open (first trade price) or Close
+     |   BODY    |
+     |           | <-- Close or Open (last trade price)
+     +-----------+
+           |
+          Low (lowest trade price in that 1 second)
+
+================================================================================
+                    1-SECOND OHLC (OPEN-HIGH-LOW-CLOSE) BARS
+================================================================================
+
+1. WHAT IS AN OHLC BAR?
+--------------------------------------------------------------------------------
+An OHLC bar aggregates all individual tick trades occurring within a single 
+time window (in our case, 1 second) into four core summary metrics:
+
+- Open  : The price of the very first trade in that second.
+- High  : The highest price observed among all trades in that second.
+- Low   : The lowest price observed among all trades in that second.
+- Close : The price of the last trade recorded in that second.
+
+
+2. TIMESTAMP CONVERSION MATH
+--------------------------------------------------------------------------------
+The dataset records timestamps in microseconds (T_t). To group trades into 1-second 
+buckets, we use integer division:
+
+    second = timestamp_microseconds / 1,000,000
+
+Example:
+  1,787,303,218,081,747 us / 1,000,000 = 1,787,303,218 seconds
+  1,787,303,218,216,727 us / 1,000,000 = 1,787,303,218 seconds (Same second!)
+  1,787,303,219,005,100 us / 1,000,000 = 1,787,303,219 seconds (New second!)
+
+
+3. STATE MACHINE WORKFLOW (PER TRADE)
+--------------------------------------------------------------------------------
+We maintain a state struct tracking: current_second, open, high, low, close.
+
+For each incoming trade (timestamp, price):
+
+Step A: Convert timestamp to whole seconds.
+Step B: Check state condition:
+  
+  1. IF FIRST TRADE (current_second == -1):
+     - Set current_second = second
+     - Set Open = High = Low = Close = price
+
+  2. IF SAME SECOND (second == current_second):
+     - If price > High -> High = price
+     - If price < Low  -> Low  = price
+     - Set Close = price
+     - Return 0 (Bar still in progress)
+
+  3. IF NEW SECOND (second != current_second):
+     - Copy completed bar data (Open, High, Low, Close) to output buffer.
+     - Reset state for the new second (current_second = second, Open = High = Low = Close = price).
+     - Return 1 (Signals to caller that a 1-second bar has completed).
+
+
+4. WHY THIS IS LOW-LATENCY EFFICIENT
+--------------------------------------------------------------------------------
+- O(1) Memory & CPU: We only store 5 scalar numbers in memory instead of keeping 
+  an array of all trades in memory.
+- Single Pass: Bar detection happens during the live file/network stream without 
+  requiring secondary processing passes over the data.
+================================================================================

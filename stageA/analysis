@@ -1,0 +1,8 @@
+==================== STAGE A (STREAMING) ====================
+Total Trades Processed : 1000000
+BUY Signals Raised     : 2289
+SELL Signals Raised    : 2289
+Total Run Time         : 35615820238 ns (35615.820 ms)
+Time Per Trade         : 35615.82 ns/trade
+Throughput             : 28077.41 trades/sec
+=============================================================

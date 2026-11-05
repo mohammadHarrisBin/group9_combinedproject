@@ -1,0 +1,79 @@
+================================================================================
+                     VOLUME-WEIGHTED AVERAGE PRICE (VWAP)
+================================================================================
+
+1. WHAT IS VWAP?
+--------------------------------------------------------------------------------
+VWAP stands for Volume-Weighted Average Price. Unlike a plain average price, 
+VWAP accounts for the volume (quantity) of asset traded at each price point. 
+Larger trades pull the average closer to their price, while smaller trades 
+have less influence.
+
+
+2. THE MATHEMATICAL FORMULA
+--------------------------------------------------------------------------------
+         Sum of (Price * Quantity) for all trades
+VWAP = --------------------------------------------
+               Sum of Quantity for all trades
+
+In mathematical notation:
+VWAP = (p1*q1 + p2*q2 + ... + pM*qM) / (q1 + q2 + ... + qM)
+
+Where:
+- p_t = Price of trade t
+- q_t = Quantity (volume) of trade t
+- M   = Total number of trades processed so far
+
+
+3. WORKED EXAMPLE (BY HAND)
+--------------------------------------------------------------------------------
+Suppose 3 trades occur in the market:
+- Trade 1: Price = $100.00, Quantity = 2 BTC
+- Trade 2: Price = $101.00, Quantity = 1 BTC
+- Trade 3: Price = $102.00, Quantity = 1 BTC
+
+A plain average of the prices would be:
+(100.00 + 101.00 + 102.00) / 3 = $101.00
+
+However, calculating VWAP:
+1. Numerator   (Sum of Price * Qty) = (100*2) + (101*1) + (102*1)
+                                   = 200 + 101 + 102
+                                   = 403.00 USDT
+
+2. Denominator (Sum of Qty)         = 2 + 1 + 1
+                                   = 4 BTC
+
+3. VWAP                             = 403.00 / 4
+                                   = $100.75
+
+Notice that VWAP ($100.75) is lower than the plain average ($101.00) because 
+the largest trade occurred at the lower price of $100.00.
+
+
+4. C IMPLEMENTATION STRATEGY (STREAMING ENGINE)
+--------------------------------------------------------------------------------
+In a streaming C program, you do NOT need to store past prices in an array or 
+re-read files. Instead, you update two running total variables in constant O(1) 
+time for every new trade:
+
+- Variable 1: double sum_price_qty (accumulates p * q)
+- Variable 2: double sum_qty       (accumulates q)
+
+Algorithmic Steps per Trade:
+1. Initialize both sums to 0.0 at startup.
+2. For each incoming trade (price, qty):
+   - sum_price_qty += (price * qty);
+   - sum_qty += qty;
+3. Current VWAP = sum_price_qty / sum_qty.
+
+
+5. WHY VWAP IS IMPORTANT IN HFT & TRADING
+--------------------------------------------------------------------------------
+- Benchmark Indicator: Institutional traders use VWAP to evaluate whether they 
+  bought or sold at a good price relative to overall market volume.
+- Execution Efficiency: Buying below VWAP means getting a better price than the 
+  volume-weighted market average.
+- Low-Latency Efficiency: Because it only requires two floating-point additions 
+  per trade, computing VWAP is extremely fast and ideal for high-frequency 
+  trading engines built in C.
+================================================================================

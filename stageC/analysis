@@ -1,0 +1,44 @@
+
+==================== STAGE C SUMMARY RESULTS 1000x ====================
+Total Trades Processed : 1000000
+BUY / SELL Signals     : 2289 BUY / 2289 SELL
+Average Trade Latency  : 201.50 ns
+Worst-Case Latency     : 161100 ns (161.100 us)
+------------------------------------------------------------------
+Rival Bot Reaction T   : 1.00 us (1000 ns)
+Bot Priority Wins      : 4536 signals
+Rival Slippage Losses  : 6 signals
+Simulated P&L          : 31809.24 USDT
+==================================================================
+
+==================== STAGE C SUMMARY RESULTS 100x ====================
+Total Trades Processed : 1000000
+BUY / SELL Signals     : 2289 BUY / 2289 SELL
+Average Trade Latency  : 166.02 ns
+Worst-Case Latency     : 438900 ns (438.900 us)
+------------------------------------------------------------------
+Rival Bot Reaction T   : 1.00 us (1000 ns)
+Bot Priority Wins      : 4541 signals
+Rival Slippage Losses  : 1 signals
+Simulated P&L          : 31809.26 USDT
+==================================================================
+
+
+==================== STAGE C SUMMARY RESULTS ====================
+Total Trades Processed : 1000000
+BUY / SELL Signals     : 2289 BUY / 2289 SELL
+Average Trade Latency  : 173.44 ns
+Worst-Case Latency     : 90700 ns (90.700 us)
+==================================================================
+
+--- RIVAL BOT SWEEP RESULTS (plots/rival_sweep.dat) ---
+R_us            P&L (USDT)      Wins    Losses
+0.1 us          31464.32                1208    3334
+0.5 us          31809.26                4533    9
+1.0 us          31809.26                4540    2
+2.0 us          31809.26                4541    1
+5.0 us          31809.26                4542    0
+10.0 us         31809.26                4542    0
+20.0 us         31809.26                4542    0
+50.0 us         31809.26                4542    0
+100.0 us                31809.26                4542    0

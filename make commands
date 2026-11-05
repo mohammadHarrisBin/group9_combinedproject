@@ -1,0 +1,64 @@
+================================================================================
+            CSC1103/1104 MINI-PROJECT MAKEFILE COMMAND REFERENCE SHEET
+================================================================================
+
+1. COMPILATION & BUILD COMMANDS
+--------------------------------------------------------------------------------
+make all            : Builds directory tree and all rungs (Stage 0 to Stage C)
+make stage0         : Builds Stage 0 O0 and O2 baseline binaries
+make test_tradeio   : Builds standalone trade_io module test
+make test_vwap      : Builds standalone VWAP indicator test
+make test_ohlc      : Builds standalone OHLC bar indicator test
+make test_sma       : Builds standalone SMA indicator test
+make test_signal    : Builds standalone Signal Crossover test
+make stageA         : Builds Stage A streaming engine (trade_io)
+make stageA_plus    : Builds Stage A+ fast parser engine (fast_reader)
+make stageB         : Builds Stage B static array engine (RAM)
+make stageB_fp      : Builds Stage B fixed-point integer engine (long long)
+make stageB_malloc  : Builds Stage B dynamic memory allocation engine
+make stageC         : Builds Stage C real-time replay & rival bot engine
+
+
+2. BINARY EXECUTION COMMANDS
+--------------------------------------------------------------------------------
+# Stage 0 Baselines
+./bin/parta_O0
+./bin/parta_O2
+./bin/partb_O0
+./bin/partb_O2
+
+# Module Tests
+./bin/test_tradeio
+./bin/test_vwap
+./bin/test_ohlc
+./bin/test_sma
+./bin/test_signal
+
+# Core Engines
+./bin/stageA_engine
+./bin/stageA_plus_engine
+./bin/stageB_engine
+./bin/stageB_fp_engine
+./bin/stageB_malloc_engine
+
+# Stage C Replay & Rival Bot Engine (Speed Multiplier Argument)
+./bin/stageC_engine 1000   # Replay at 1000x speed
+./bin/stageC_engine 100    # Replay at 100x speed
+./bin/stageC_engine 1      # Replay at 1x real-time speed
+
+
+3. PLOT & GRAPH GENERATION COMMANDS (BUILD + RUN + GNUPLOT)
+--------------------------------------------------------------------------------
+make plot_stageA        : Generates plots/signals_stageA.png
+make plot_stageA_plus   : Generates plots/signals.png
+make plot_stageB        : Generates plots/signals_stageB.png
+make plot_stageB_fp     : Generates plots/signals_stageB_fp.png
+make plot_stageB_malloc : Generates plots/signals_stageB_malloc.png
+make plot_stageC        : Generates plots/rival_sweep.png
+
+
+4. CLEANUP & MAINTENANCE COMMANDS
+--------------------------------------------------------------------------------
+make clean              : Removes bin/ and plots/ directories
+make clean && make all  : Complete fresh rebuild of all targets
+================================================================================
