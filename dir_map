@@ -1,0 +1,38 @@
+UoG-PMCOA_Group09/
+|
+├── common/              <-- Shared system, timing, LED, and file I/O modules
+│   ├── timing.h         <-- High-precision timer (now_ns)
+│   ├── led.h            <-- Raspberry Pi 5 status LED driver
+│   ├── trade_io.h/.c    <-- Stage A standard CSV helper library
+│   └── fast_reader.h/.c <-- Stage A+/B/C custom fast string parser
+|
+├── indicators/         <-- Modular math and indicator kernels
+│   ├── vwap.h/.c       <-- Volume-Weighted Average Price
+│   ├── ohlc.h/.c       <-- 1-Second OHLC (Open, High, Low, Close) Bars
+│   ├── sma.h/.c        <-- Simple Moving Average (Circular Buffer & Running Sum)
+│   └── signal.h/.c     <-- Short vs. Long SMA Crossover Signal logic
+|
+├── stage0/             <-- Baseline timing & recursive stack tests
+│   ├── stage0_parta.c
+│   └── stage0_partb.c
+|
+├── stageA/             <-- Stage A streaming engine & indicator test units
+│   ├── main_stageA.c
+│   ├── test_tradeio.c
+│   ├── test_vwap.c
+│   ├── test_ohlc.c
+│   ├── test_sma.c
+│   └── test_signal.c
+|
+├── stageA+/            <-- Stage A+ fast string parser engine
+│   └── main_stageA+.c
+|
+├── stageB/             <-- Stage B in-memory engines
+│   ├── main_stageB.c             <-- Static array RAM engine + O(1) SMA
+│   ├── main_stageB_fixedpoint.c  <-- Fixed-point long long integer engine
+│   └── main_stageB_malloc.c      <-- Dynamic heap memory allocation engine
+|
+├── stageC/             <-- Stage C real-time replay & rival bot simulation
+│   └── main_stageC.c
+|
+└── Makefile            <-- Master compilation script

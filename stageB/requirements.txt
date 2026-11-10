@@ -1,0 +1,40 @@
+PART 1:
+
+: Trade struct
+    : define a Trade struct
+    : load every trade into a fixed size global 
+    array of structs 
+
+        : static Trade trades[MAX_TRADES]
+
+: Compute the SMA twice
+    : naively
+        : reaading the whole window at every trade
+    : running sum
+    : compare the times betwee the 2.
+
+: Store prices as fixed point 
+    : Replace (double) with (long long)
+    : compare 
+        : timings
+        : the No. of trades
+        : the No. of BUYs and SELLs
+
+: Build EFFICIENCY ladder
+    : Every version, provide a
+        : TABLE
+        : GRAPH
+        : At least 4 in the ladder
+            
+            : compiler optimisation flags (-O0, -O2, -O3) & 
+            -mcpu=cortex-a76 (for Pi only);
+
+            : your own fast parser in place of the helper library;
+
+            : a running-sum SMA in place of recomputing the whole window;
+
+            : fixed-point integer prices in place of double;
+
+            : processing from memory in place of re-reading the file;
+
+            : (Week 12) memory allocated with malloc to fit the data exactly.

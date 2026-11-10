@@ -2,6 +2,7 @@
 #include "led.h"
 #include "timing.h"
 
+// using loops iteratively
 unsigned long long iter_func(unsigned long long N) {
     unsigned long long sum = 0;
     for (unsigned long long i = 1; i <= N; i++) {
@@ -10,6 +11,7 @@ unsigned long long iter_func(unsigned long long N) {
     return sum;
 }
 
+// using recursive functions
 unsigned long long recurr_func(unsigned long long N) {
     if (N <= 1) {
         return N;
@@ -17,7 +19,10 @@ unsigned long long recurr_func(unsigned long long N) {
     return N + recurr_func(N - 1);
 }
 
+
+
 int main(void) {
+    // initialise the LED
     led_init();
 
     unsigned long long N = 10000; 
@@ -30,7 +35,7 @@ int main(void) {
     uint64_t start_time, end_time;
     uint64_t iter_elapsed_time, recurr_elapsed_time;
 
-    // --- 1. Iterative Benchmark ---
+    // Iterative Benchmark 
     led_on(LED_GREEN);
     start_time = now_ns();
     for (int i = 0; i < REPEATS; i++) {
@@ -40,7 +45,7 @@ int main(void) {
     led_off(LED_GREEN);
     iter_elapsed_time = end_time - start_time;
 
-    // --- 2. Recursive Benchmark ---
+    // Recursive Benchmark
     led_on(LED_GREEN);
     start_time = now_ns();
     for (int i = 0; i < REPEATS; i++) {
@@ -50,7 +55,7 @@ int main(void) {
     led_off(LED_GREEN);
     recurr_elapsed_time = end_time - start_time;
 
-    // --- 3. Print Results ---
+    // Iterative loops vs Recursive functions Results
     printf("Iterative Sum: %llu | Time: %llu ns (%.3f ms)\n", 
            (unsigned long long)iter_sum, 
            (unsigned long long)iter_elapsed_time, 
@@ -61,6 +66,7 @@ int main(void) {
            (unsigned long long)recurr_elapsed_time, 
            (double)recurr_elapsed_time / 1e6);
 
+    // back to LED defaults
     led_cleanup();
     return 0;
 }

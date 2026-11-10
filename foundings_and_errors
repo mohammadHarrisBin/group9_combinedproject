@@ -1,0 +1,13 @@
+0. Make sure requirements is met
+1. wrote some extra comments for stageA
+2. added a separate file for
+    - stageA test20 to generate the test expected output
+    - requirements.txt for each stages
+
+3. Compute SMA running and added inside stageB and stageC.
+
+4. Makefile updated
+make stageB
+- stageB_naive_engine
+- stageB_running_engine
+

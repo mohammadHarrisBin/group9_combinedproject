@@ -1,0 +1,18 @@
+PART 1(Week 8):
+
+: Study the helper file 
+    : trade_io.h and trade_io.c
+    : see how fopen and fgets is used
+
+: Create our own helper file 
+    : lets call it fast_reader.h and fast_reader.c
+    : Functions must hands back several results through pointer parameters.
+
+PART 2(Week 9)
+
+: current trade_io.c uses sscanf which is slow
+: create our own parser to replace sscanf
+    : walks each line as a character array
+    : convert the digits yourself
+
+: Test the speedup on the stress_full.csv file

@@ -3,8 +3,8 @@ CFLAGS = -Wall -Wextra -Icommon -Iindicators -Istage0
 BIN_DIR = bin
 PLOTS_DIR = plots
 
-# Default target: build everything (including Stage B, Fixed-Point, Malloc, and Stage C)
-all: directories stage0 test_tradeio test_vwap test_ohlc test_sma test_signal stageA stageA_plus stageB stageB_fp stageB_malloc stageC
+# Default target: build everything (including Stage B Naive, Running-Sum, Fixed-Point, Malloc, and Stage C)
+all: directories stage0 test_tradeio test_vwap test_ohlc test_sma test_signal stageA stageA_plus stageB stageB_naive stageB_running stageB_fp stageB_malloc stageC
 
 directories:
 	@mkdir -p $(BIN_DIR) $(PLOTS_DIR)
@@ -12,14 +12,21 @@ directories:
 # ==============================================================================
 # --- Stage 0 Targets ---
 # ==============================================================================
-stage0: directories $(BIN_DIR)/parta_O0 $(BIN_DIR)/parta_O2 $(BIN_DIR)/partb_O0 $(BIN_DIR)/partb_O2
+stage0: directories $(BIN_DIR)/parta_O0 $(BIN_DIR)/parta_O1 $(BIN_DIR)/parta_O2 $(BIN_DIR)/parta_O3 $(BIN_DIR)/partb_O0 $(BIN_DIR)/partb_O2
 
 $(BIN_DIR)/parta_O0: stage0/stage0_parta.c
 	$(CC) $(CFLAGS) -O0 $< -o $@
 
+$(BIN_DIR)/parta_O1: stage0/stage0_parta.c
+	$(CC) $(CFLAGS) -O1 $< -o $@
+
 $(BIN_DIR)/parta_O2: stage0/stage0_parta.c
 	$(CC) $(CFLAGS) -O2 $< -o $@
 
+$(BIN_DIR)/parta_O3: stage0/stage0_parta.c
+	$(CC) $(CFLAGS) -O3 $< -o $@
+
+# Makefile targets for Stage 0 Part B
 $(BIN_DIR)/partb_O0: stage0/stage0_partb.c
 	$(CC) $(CFLAGS) -O0 $< -o $@
 
@@ -71,6 +78,17 @@ $(BIN_DIR)/stageA_engine: stageA/main_stageA.c \
                           common/trade_io.c
 	$(CC) $(CFLAGS) -O2 $^ -o $@
 
+# Stage A Test Runner (TEST20 Correctness Check - Short=3, Long=5)
+test20: directories $(BIN_DIR)/test20_stageA_engine
+
+$(BIN_DIR)/test20_stageA_engine: stageA/test20_stageA.c \
+                          indicators/vwap.c \
+                          indicators/ohlc.c \
+                          indicators/sma.c \
+                          indicators/signal.c \
+                          common/trade_io.c
+	$(CC) $(CFLAGS) -O2 $^ -o $@
+
 # ==============================================================================
 # --- Stage A+ Targets ---
 # ==============================================================================
@@ -90,15 +108,29 @@ $(BIN_DIR)/stageA_plus_engine: stageA+/main_stageA+.c \
 # --- Stage B Targets ---
 # ==============================================================================
 
-# Full Stage B Engine (In-Memory Trade Processing + O(1) Running SMA)
-stageB: directories $(BIN_DIR)/stageB_engine
+# Meta-target to build both Stage B SMA variants
+stageB: stageB_naive stageB_running
 
-$(BIN_DIR)/stageB_engine: stageB/main_stageB.c \
-                         indicators/vwap.c \
-                         indicators/ohlc.c \
-                         indicators/sma.c \
-                         indicators/signal.c \
-                         common/fast_reader.c
+# Stage B Naive SMA Engine (O(N) Re-adding window each trade)
+stageB_naive: directories $(BIN_DIR)/stageB_naive_engine
+
+$(BIN_DIR)/stageB_naive_engine: stageB/main_stageB.c \
+                               indicators/vwap.c \
+                               indicators/ohlc.c \
+                               indicators/sma.c \
+                               indicators/signal.c \
+                               common/fast_reader.c
+	$(CC) $(CFLAGS) -O2 $^ -o $@
+
+# Stage B Running-Sum SMA Engine (O(1) Constant Time sliding window)
+stageB_running: directories $(BIN_DIR)/stageB_running_engine
+
+$(BIN_DIR)/stageB_running_engine: stageB/main_stageB_running.c \
+                                 indicators/vwap.c \
+                                 indicators/ohlc.c \
+                                 indicators/sma.c \
+                                 indicators/signal.c \
+                                 common/fast_reader.c
 	$(CC) $(CFLAGS) -O2 $^ -o $@
 
 # Fixed-Point Integer Stage B Engine (long long arithmetic)
@@ -121,6 +153,13 @@ $(BIN_DIR)/stageB_malloc_engine: stageB/main_stageB_malloc.c \
                                 indicators/signal.c \
                                 common/fast_reader.c
 	$(CC) $(CFLAGS) -O2 $^ -o $@
+
+# Helper targets for quickly running Stage B benchmarks individually
+run_stageB_naive: stageB_naive
+	./$(BIN_DIR)/stageB_naive_engine
+
+run_stageB_running: stageB_running
+	./$(BIN_DIR)/stageB_running_engine
 
 # ==============================================================================
 # --- Stage C Targets ---
@@ -177,23 +216,41 @@ plot_stageA_plus: stageA_plus directories
 	                 '$(PLOTS_DIR)/signals.dat' using 1:(\$$5==-1?\$$2:NaN) title 'SELL' with points pt 7 ps 1.5 linecolor rgb '#ff0000'"
 	@echo "Done! Saved to $(PLOTS_DIR)/signals.png"
 
-# Plot using Stage B Engine (In-Memory Processing)
-plot_stageB: stageB directories
-	@echo "Running Stage B Engine to write $(PLOTS_DIR)/signals_stageB.dat..."
-	./$(BIN_DIR)/stageB_engine
-	@echo "Rendering $(PLOTS_DIR)/signals_stageB.png with gnuplot..."
+# Plot using Stage B Naive Engine
+plot_stageB_naive: stageB_naive directories
+	@echo "Running Stage B Naive Engine to write $(PLOTS_DIR)/signals_stageB_naive.dat..."
+	./$(BIN_DIR)/stageB_naive_engine
+	@echo "Rendering $(PLOTS_DIR)/signals_stageB_naive.png with gnuplot..."
 	gnuplot -e "set terminal png size 1200,600; \
-	            set output '$(PLOTS_DIR)/signals_stageB.png'; \
-	            set title 'Trade Price and SMA Crossovers (Stage B In-Memory)'; \
+	            set output '$(PLOTS_DIR)/signals_stageB_naive.png'; \
+	            set title 'Trade Price and SMA Crossovers (Stage B Naive O(N))'; \
 	            set xlabel 'Trade Number'; \
 	            set ylabel 'Price (USDT)'; \
 	            set grid; \
-	            plot '$(PLOTS_DIR)/signals_stageB.dat' using 1:2 title 'Price' with lines linecolor rgb '#888888', \
-	                 '$(PLOTS_DIR)/signals_stageB.dat' using 1:3 title 'Short SMA' with lines linecolor rgb '#ff0000', \
-	                 '$(PLOTS_DIR)/signals_stageB.dat' using 1:4 title 'Long SMA' with lines linecolor rgb '#0000ff', \
-	                 '$(PLOTS_DIR)/signals_stageB.dat' using 1:(\$$5==1?\$$2:NaN) title 'BUY' with points pt 7 ps 1.5 linecolor rgb '#00cc00', \
-	                 '$(PLOTS_DIR)/signals_stageB.dat' using 1:(\$$5==-1?\$$2:NaN) title 'SELL' with points pt 7 ps 1.5 linecolor rgb '#ff0000'"
-	@echo "Done! Saved to $(PLOTS_DIR)/signals_stageB.png"
+	            plot '$(PLOTS_DIR)/signals_stageB_naive.dat' using 1:2 title 'Price' with lines linecolor rgb '#888888', \
+	                 '$(PLOTS_DIR)/signals_stageB_naive.dat' using 1:3 title 'Short SMA' with lines linecolor rgb '#ff0000', \
+	                 '$(PLOTS_DIR)/signals_stageB_naive.dat' using 1:4 title 'Long SMA' with lines linecolor rgb '#0000ff', \
+	                 '$(PLOTS_DIR)/signals_stageB_naive.dat' using 1:(\$$5==1?\$$2:NaN) title 'BUY' with points pt 7 ps 1.5 linecolor rgb '#00cc00', \
+	                 '$(PLOTS_DIR)/signals_stageB_naive.dat' using 1:(\$$5==-1?\$$2:NaN) title 'SELL' with points pt 7 ps 1.5 linecolor rgb '#ff0000'"
+	@echo "Done! Saved to $(PLOTS_DIR)/signals_stageB_naive.png"
+
+# Plot using Stage B Running-Sum Engine
+plot_stageB_running: stageB_running directories
+	@echo "Running Stage B Running-Sum Engine to write $(PLOTS_DIR)/signals_stageB_running.dat..."
+	./$(BIN_DIR)/stageB_running_engine
+	@echo "Rendering $(PLOTS_DIR)/signals_stageB_running.png with gnuplot..."
+	gnuplot -e "set terminal png size 1200,600; \
+	            set output '$(PLOTS_DIR)/signals_stageB_running.png'; \
+	            set title 'Trade Price and SMA Crossovers (Stage B Running-Sum O(1))'; \
+	            set xlabel 'Trade Number'; \
+	            set ylabel 'Price (USDT)'; \
+	            set grid; \
+	            plot '$(PLOTS_DIR)/signals_stageB_running.dat' using 1:2 title 'Price' with lines linecolor rgb '#888888', \
+	                 '$(PLOTS_DIR)/signals_stageB_running.dat' using 1:3 title 'Short SMA' with lines linecolor rgb '#ff0000', \
+	                 '$(PLOTS_DIR)/signals_stageB_running.dat' using 1:4 title 'Long SMA' with lines linecolor rgb '#0000ff', \
+	                 '$(PLOTS_DIR)/signals_stageB_running.dat' using 1:(\$$5==1?\$$2:NaN) title 'BUY' with points pt 7 ps 1.5 linecolor rgb '#00cc00', \
+	                 '$(PLOTS_DIR)/signals_stageB_running.dat' using 1:(\$$5==-1?\$$2:NaN) title 'SELL' with points pt 7 ps 1.5 linecolor rgb '#ff0000'"
+	@echo "Done! Saved to $(PLOTS_DIR)/signals_stageB_running.png"
 
 # Plot using Stage B Fixed-Point Engine
 plot_stageB_fp: stageB_fp directories
@@ -231,7 +288,6 @@ plot_stageB_malloc: stageB_malloc directories
 	                 '$(PLOTS_DIR)/signals_stageB_malloc.dat' using 1:(\$$5==-1?\$$2:NaN) title 'SELL' with points pt 7 ps 1.5 linecolor rgb '#ff0000'"
 	@echo "Done! Saved to $(PLOTS_DIR)/signals_stageB_malloc.png"
 
-
 # Plot using Stage C Rival Bot Sweep
 plot_stageC: stageC directories
 	@echo "Running Stage C Engine to write $(PLOTS_DIR)/rival_sweep.dat..."
@@ -246,6 +302,7 @@ plot_stageC: stageC directories
 	            set grid; \
 	            plot '$(PLOTS_DIR)/rival_sweep.dat' using 1:2 title 'Engine P&L' with linespoints pt 7 ps 1.5 linecolor rgb '#00aa00'"
 	@echo "Done! Saved to $(PLOTS_DIR)/rival_sweep.png"
+
 # ==============================================================================
 # --- Clean Rule ---
 # ==============================================================================

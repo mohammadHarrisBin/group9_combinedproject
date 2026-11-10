@@ -6,8 +6,13 @@
 #include "signal.h"
 #include "timing.h"
 
-#define MAX_TRADES 1000000
+/*
+    load every trade into a fixed size global 
+    array of structs 
+*/
+ #define MAX_TRADES 1000000
 
+// define a Trade struct
 typedef struct {
     long long ts;
     double price;
@@ -25,12 +30,15 @@ int main(void) {
 
     // 1. UNTIMED INGESTION: Read CSV into RAM array before timing
     int trade_count = 0;
+
+    // Its just updating the empty properties where 
+    // fast_reader read_trade() provides
     while (trade_count < MAX_TRADES && 
            read_trade(&trades[trade_count].ts, 
                       &trades[trade_count].price, 
                       &trades[trade_count].qty, 
                       &trades[trade_count].is_buy)) {
-        trade_count++;
+        trade_count++; // move on to the next trade
     }
     close_trades();
 
@@ -52,7 +60,7 @@ int main(void) {
 
     FILE *out = fopen("plots/signals_stageB.dat", "w");
 
-    // 2. TIMED BENCHMARK: Process trades directly out of RAM
+    // TIMED BENCHMARK: Process trades directly out of RAM
     uint64_t start_time = now_ns();
 
     for (int i = 0; i < trade_count; i++) {
@@ -95,7 +103,7 @@ int main(void) {
     double ns_per_trade = (double)elapsed_ns / (double)trade_count;
     double trades_per_sec = (double)trade_count / ((double)elapsed_ns / 1e9);
 
-    fprintf(stderr, "\n==================== STAGE B (RAM) ====================\n");
+    fprintf(stderr, "\n=========== STAGE B (RAM) | Naive SMA ===============\n");
     fprintf(stderr, "Total Trades Processed : %d\n", trade_count);
     fprintf(stderr, "BUY Signals Raised     : %d\n", buy_signals);
     fprintf(stderr, "SELL Signals Raised    : %d\n", sell_signals);

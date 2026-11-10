@@ -121,11 +121,11 @@ int main(int argc, char *argv[]) {
 
         double s_val = 0.0;
         int short_ready = sma_is_full(&short_sma);
-        if (short_ready) s_val = sma_calculate_naive(&short_sma);
+        if (short_ready) s_val = sma_calculate_running(&short_sma);
 
         double l_val = 0.0;
         int long_ready = sma_is_full(&long_sma);
-        if (long_ready) l_val = sma_calculate_naive(&long_sma);
+        if (long_ready) l_val = sma_calculate_running(&long_sma);
 
         int signal = SIGNAL_NONE;
         if (short_ready && long_ready) {

@@ -1,0 +1,22 @@
+Stage A:
+
+: Compute indicators
+    VWAP (volume weighted average price)
+    OHLC (open, high, low, close) - candlestick
+    SMA  (Simple moving average)
+    
+
+: Compute Signal providers
+    :BUY signal 
+        short SMA crosses above long SMA 
+    :SELL signal
+        short SMA crosses below long SMA
+    :Number of trades:
+        2000 from dev_1M.csv 
+        contains at least one BUY and one SELL
+    
+
+: SMA parameters
+    short = 3
+    long = 5
+

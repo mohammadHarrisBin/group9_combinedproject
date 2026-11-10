@@ -1,0 +1,36 @@
+PART 1
+: Implement dynamic memory 
+    : Replace the fixed-size array 
+    with one allocated malloc to fit the file
+
+
+: Implement timestamp_order
+    :TEST FILE
+        : stress_full.csv
+    
+    :COMPARE the timing speeds
+        : REAL
+            :At least 10mins
+        : 100x & 1000x
+            : Under 2 mins    
+
+: Signal display
+    : Built in LED status
+        : GREEN for BUY
+        : RED for SELL
+        : Coloured Terminal display (CSC1104 only)
+
+: Measure the latency of
+    : Every trade
+    : report the 
+        average and worse case
+
+: Generate the assembly 
+    : for the main loop (gcc -S O2)
+    : annotate what each instructions does
+
+: Proof / show 
+    : Slow code loses money
+    : Run version0
+    : Run faster version
+    : Report how much money the slow code loses.

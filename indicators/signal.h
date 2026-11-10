@@ -8,7 +8,7 @@
 
 // Signal State Structure
 typedef struct {
-    double prev_diff; // Short SMA - Long SMA from previous trade
+    double prev_diff; // dₜ₋₁ Short SMA - Long SMA from previous trade
     int initialized;  // 1 after the first valid SMA comparison
 } SignalState;
 

@@ -71,6 +71,8 @@ int main(void) {
 
     uint64_t end_time = now_ns();
     if (out) fclose(out);
+
+    // using close_trades() to close the file
     close_trades();
 
     uint64_t elapsed_ns = end_time - start_time;

@@ -23,6 +23,8 @@ int ohlc_update(OHLCState *state, long long ts_us, double price, OHLCState *comp
         state->low = price;
         state->close = price;
         state->has_data = 1;
+        // means the bar is still incomplete
+        // not 1 second yet
         return 0;
     }
 

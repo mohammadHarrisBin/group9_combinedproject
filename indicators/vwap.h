@@ -3,8 +3,8 @@
 
 // --- VWAP State Structure ---
 typedef struct {
-    double sum_price_qty; // Running sum of (price * quantity)[cite: 10]
-    double sum_qty;       // Running sum of quantity[cite: 10]
+    double sum_price_qty; // Running sum of (price * quantity)
+    double sum_qty;       // Running sum of quantity
 } VWAPState;
 
 // Function Prototypes

@@ -1,0 +1,36 @@
+
+
+NORMAL (without volatile)
+[led.h] Built-in LED not available (not a Pi 5, or not run with sudo). Printing instead.
+[LED GREEN ON]
+[LED GREEN OFF]
+[LED GREEN ON]
+[LED GREEN OFF]
+Iterative Sum: 50005000 | Time: 100 ns (0.000 ms)
+Recursive Sum: 50005000 | Time: 0 ns (0.000 ms)
+
+------------------------------------------------
+
+(Compile-Time Constant Folding)
+
+: The compiler look at the loop code
+and does not update iter_sum and recurr_sum
+in physical RAM during optimisations. 
+
+: Because during optimisations,
+the loops is eliminated and the sum is
+calculated using the compilation 
+pattern recognition and replaced with a 
+mathematical formula.
+
+------------------------------------------------
+
+
+VOLATILE
+[led.h] Built-in LED not available (not a Pi 5, or not run with sudo). Printing instead.
+[LED GREEN ON]
+[LED GREEN OFF]
+[LED GREEN ON]
+[LED GREEN OFF]
+Iterative Sum: 50005000 | Time: 4000 ns (0.004 ms)
+Recursive Sum: 50005000 | Time: 4000 ns (0.004 ms)

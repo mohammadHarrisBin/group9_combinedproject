@@ -1,0 +1,79 @@
+Part A: Iterative loops and Compiler optimizations.
+ 
+ :For loop N(100,000,000) number of times
+ :Each iteration of the loop takes around 1 nanosecond
+ :Hence, 100,000,000 repetitions takes a fraction of a second.
+ 
+ :Using different compiler optimizations (GCC)
+ : -O0 -> no optimization (the slowest)
+
+        -O0 is slow because every single loop step forces heavy read/write 
+        traffic back to slow RAM.
+
+        Every variable is continuously read from and written
+        back to slow RAM/stack memory.
+
+ : -O1 -> basic Optimization
+
+        -O1 speeds up by pulling those loop variables out of RAM 
+        and keeping them right inside CPU registers.
+
+        Moves frequently used loop counters and variables out 
+        of slow RAM and stores them inside fast CPU registers. 
+        Removes dead/unused code.
+ 
+ : -O2 -> Production Standard Optimization
+
+        -O2 optimizes pipeline flow by inlining functions 
+        and eliminating redundant memory loads.
+
+        Inlines simple function calls directly, reorders machine
+        instructions to keep the CPU execution pipeline full, and
+        eliminates redundant memory loads.
+
+ : -O3 -> Aggressive Optimization
+
+        -O3 is maximum speed because GCC unrolls the loop body and 
+        uses SIMD vectorization to execute multiple additions in a 
+        single CPU clock cycle."*
+        
+        Performs aggressive loop unrolling 
+        (duplicates loop bodies to eliminate loop exit checks) 
+        and SIMD vectorization 
+        (uses Single Instruction, Multiple Data registers 
+        to execute multiple additions per clock cycle).
+
+
+
+
+
+PART B: recursive vs iterative
+ : comparing the timings beween 
+ : recursive functions and iterative loops
+ : 
+ : Iterative loops
+    reuse the exact memory space and stack frame over and over.
+ :
+ : Recursive functions
+    allocate new stack frame on the CPU for every single recursion.
+ :
+ : N=10,000 instead of 100,000,000
+    100 million stack frames will be created at once,
+    instantly exhauting memory and crashing the program with a 
+    segmentation fault (Stack overflow).
+
+    We capped recursion at $N = 10,000$ because passing 100 million 
+    would create 100 million stack frames at once, exceeding stack 
+    memory limits and causing a Stack Overflow crash. 
+    Iteration reuses a single stack frame, whereas recursion 
+    allocates a new frame for every call.
+
+
+why volatile:
+Declaring a variable as volatile explicitly forces the compiler
+to treat every read and write to that variable as an actual, 
+unskippable hardware memory operation. 
+
+This prevents GCC from optimizing the execution t
+time down to 0ns so you can measure 
+true benchmark speedups.
