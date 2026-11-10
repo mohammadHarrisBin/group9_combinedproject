@@ -9,7 +9,7 @@
 #include "timing.h"
 #include "led.h"
 
-#define MAX_TRADES 1000000
+// #define MAX_TRADES 8928944
 
 typedef struct {
     long long ts;
@@ -29,6 +29,9 @@ typedef struct {
 } RivalBot;
 
 int main(int argc, char *argv[]) {
+    int capacity = 1000000;
+    Trade *trades = (Trade *)malloc(capacity * sizeof(Trade));
+
     double replay_speed = 1000.0;
     if (argc > 1) {
         replay_speed = atof(argv[1]);
@@ -38,14 +41,14 @@ int main(int argc, char *argv[]) {
     fprintf(stderr, "=== STAGE C: REAL-TIME REPLAY & RIVAL BOT SWEEP ===\n");
     fprintf(stderr, "Replay Speed Target: %.0fx\n", replay_speed);
 
-    if (!open_data(DEV)) {
+    if (!open_data(STRESS)) {
         fprintf(stderr, "Error: Could not open DEV dataset.\n");
         return 1;
     }
 
-    Trade *trades = (Trade *)malloc(MAX_TRADES * sizeof(Trade));
+    // Trade *trades = (Trade *)malloc(MAX_TRADES * sizeof(Trade));
     if (trades == NULL) {
-        fprintf(stderr, "Error: Failed to allocate memory for %d trades.\n", MAX_TRADES);
+        fprintf(stderr, "Error: Failed to allocate memory for %d trades.\n", capacity);
         close_trades();
         return 1;
     }
@@ -55,7 +58,19 @@ int main(int argc, char *argv[]) {
     double raw_price, raw_qty;
     int raw_buy;
 
-    while (trade_count < MAX_TRADES && read_trade(&raw_ts, &raw_price, &raw_qty, &raw_buy)) {
+    while (read_trade(&raw_ts, &raw_price, &raw_qty, &raw_buy)) {
+        // Double capacity if array is full
+        if (trade_count >= capacity) {
+            capacity *= 2;
+            Trade *temp = (Trade *)realloc(trades, capacity * sizeof(Trade));
+            if (temp == NULL) {
+                fprintf(stderr, "Error: Failed to reallocate memory for %d trades.\n", capacity);
+                free(trades);
+                close_trades();
+                return 1;
+            }
+            trades = temp;
+        }
         trades[trade_count].ts = raw_ts;
         trades[trade_count].price = raw_price;
         trades[trade_count].qty = raw_qty;
