@@ -2,24 +2,46 @@
             CSC1103/1104 MINI-PROJECT MAKEFILE COMMAND REFERENCE SHEET
 ================================================================================
 
-1. COMPILATION & BUILD COMMANDS
+1. DEFAULT GROUP 09 BUILD & VALIDATION
 --------------------------------------------------------------------------------
-make all            : Builds directory tree and all rungs (Stage 0 to Stage C)
-make stage0         : Builds Stage 0 O0 and O2 baseline binaries
+make                : Builds all binaries for Group 09 (Short=15, Long=100)
+make check          : Runs test20 correctness validation (Short=3, Long=5)
+make clean          : Removes bin/ and plots/ build directories
+make clean && make  : Performs a complete fresh rebuild of all targets
+
+
+2. COMPILATION & BUILD TARGETS
+--------------------------------------------------------------------------------
+make stage0         : Builds Stage 0 loop & recursion targets (-O0, -O1, -O2, -O3)
 make test_tradeio   : Builds standalone trade_io module test
 make test_vwap      : Builds standalone VWAP indicator test
 make test_ohlc      : Builds standalone OHLC bar indicator test
 make test_sma       : Builds standalone SMA indicator test
 make test_signal    : Builds standalone Signal Crossover test
 make stageA         : Builds Stage A streaming engine (trade_io)
+make test20         : Builds test20 validation engine (Short=3, Long=5)
 make stageA_plus    : Builds Stage A+ fast parser engine (fast_reader)
-make stageB         : Builds Stage B static array engine (RAM)
+make stageB         : Builds all 4 Stage B variants (naive, running, fp, malloc)
+make stageB_naive   : Builds Stage B O(N) naive array engine
+make stageB_running : Builds Stage B O(1) running-sum engine
 make stageB_fp      : Builds Stage B fixed-point integer engine (long long)
-make stageB_malloc  : Builds Stage B dynamic memory allocation engine
+make stageB_malloc  : Builds Stage B exact-fit dynamic memory engine
 make stageC         : Builds Stage C real-time replay & rival bot engine
 
 
-2. BINARY EXECUTION COMMANDS
+3. PARAMETER & BENCHMARK OVERRIDES (COMPILER FLAGS)
+--------------------------------------------------------------------------------
+# Test Other Group Parameters (e.g. Group 01: 10/60, Group 15: 10/200)
+make SHORT_N=10 LONG_N=60
+make SHORT_N=10 LONG_N=200
+
+# Optimization & Architecture Flags (Pi 5 Cortex-A76 Benchmarking)
+make OPT=-O3
+make CPU=-mcpu=cortex-a76
+make OPT=-O3 CPU=-mcpu=cortex-a76
+
+
+4. BINARY EXECUTION COMMANDS
 --------------------------------------------------------------------------------
 # Stage 0 Baselines
 ./bin/parta_O0
@@ -27,38 +49,27 @@ make stageC         : Builds Stage C real-time replay & rival bot engine
 ./bin/partb_O0
 ./bin/partb_O2
 
-# Module Tests
-./bin/test_tradeio
-./bin/test_vwap
-./bin/test_ohlc
-./bin/test_sma
-./bin/test_signal
-
-# Core Engines
+# Core Engines (Group 09)
 ./bin/stageA_engine
 ./bin/stageA_plus_engine
-./bin/stageB_engine
+./bin/stageB_naive_engine
+./bin/stageB_running_engine
 ./bin/stageB_fp_engine
 ./bin/stageB_malloc_engine
 
-# Stage C Replay & Rival Bot Engine (Speed Multiplier Argument)
+# Stage C Replay & Rival Bot Engine (Replay Speed Argument)
 ./bin/stageC_engine 1000   # Replay at 1000x speed
 ./bin/stageC_engine 100    # Replay at 100x speed
 ./bin/stageC_engine 1      # Replay at 1x real-time speed
 
 
-3. PLOT & GRAPH GENERATION COMMANDS (BUILD + RUN + GNUPLOT)
+5. PLOT & GRAPH GENERATION COMMANDS (BUILD + RUN + GNUPLOT)
 --------------------------------------------------------------------------------
-make plot_stageA        : Generates plots/signals_stageA.png
-make plot_stageA_plus   : Generates plots/signals.png
-make plot_stageB        : Generates plots/signals_stageB.png
-make plot_stageB_fp     : Generates plots/signals_stageB_fp.png
-make plot_stageB_malloc : Generates plots/signals_stageB_malloc.png
-make plot_stageC        : Generates plots/rival_sweep.png
-
-
-4. CLEANUP & MAINTENANCE COMMANDS
---------------------------------------------------------------------------------
-make clean              : Removes bin/ and plots/ directories
-make clean && make all  : Complete fresh rebuild of all targets
+make plot_stageA         : Generates plots/signals_stageA.png
+make plot_stageA_plus    : Generates plots/signals.png
+make plot_stageB_naive   : Generates plots/signals_stageB_naive.png
+make plot_stageB_running : Generates plots/signals_stageB_running.png
+make plot_stageB_fp      : Generates plots/signals_stageB_fp.png
+make plot_stageB_malloc  : Generates plots/signals_stageB_malloc.png
+make plot_stageC         : Generates plots/rival_sweep.png
 ================================================================================

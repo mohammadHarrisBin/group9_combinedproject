@@ -6,6 +6,14 @@
 #include "signal.h"
 #include "timing.h"
 
+#ifndef SHORT_N
+#define SHORT_N 15
+#endif
+
+#ifndef LONG_N
+#define LONG_N 100
+#endif
+
 int main(void) {
     // Opening the dataset using trade_io.c (using TEST20 dataset)
     if (!open_data(TEST20)) {
@@ -36,10 +44,10 @@ int main(void) {
         sma->window = buffer;
         For TEST20 dataset: short=3, long=5 (as per spec for test20.csv verification)
     */
-    double short_buf[3], long_buf[5];
+    double short_buf[SHORT_N], long_buf[LONG_N];
     SMAWindow short_sma, long_sma;
-    sma_init(&short_sma, short_buf, 3);
-    sma_init(&long_sma, long_buf, 5);
+    sma_init(&short_sma, short_buf, SHORT_N);
+    sma_init(&long_sma, long_buf, LONG_N);
 
     // initialise the signal state
     SignalState sig_st; signal_init(&sig_st);
@@ -132,7 +140,7 @@ int main(void) {
         double cur_vwap = vwap_get(&vwap);
 
         // Print formatted line to terminal matching test20_expected.txt format
-        printf("%-5d | %-10.2f | %-8.4f | %-14.8f | %-14s | %-14s | %-6s\n",
+        printf("%-5d | %-10.2f | %-8.8f | %-14.8f | %-14s | %-14s | %-6s\n",
                count, price, qty, cur_vwap, s_str, l_str, sig_str);
 
         // update each trade iteration inside the .dat file for GNU plotting later (writes all 20 trades for TEST20)

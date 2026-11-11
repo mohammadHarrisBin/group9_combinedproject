@@ -9,6 +9,14 @@
 
 #define MAX_TRADES 1000000
 
+#ifndef SHORT_N
+#define SHORT_N 15
+#endif
+
+#ifndef LONG_N
+#define LONG_N 100
+#endif
+
 typedef struct {
     long long ts;
     double price;
@@ -41,15 +49,18 @@ int main(void) {
     VWAPState vwap; vwap_init(&vwap);
     OHLCState ohlc, completed_bar; ohlc_init(&ohlc);
 
-    double short_buf[15] = {0}, long_buf[100] = {0};
+    double short_buf[SHORT_N], long_buf[LONG_N];
     SMAWindow short_sma, long_sma;
-    sma_init(&short_sma, short_buf, 15);
-    sma_init(&long_sma, long_buf, 100);
+    sma_init(&short_sma, short_buf, SHORT_N);
+    sma_init(&long_sma, long_buf, LONG_N);
 
     SignalState sig_st; signal_init(&sig_st);
 
     int buy_signals = 0;
     int sell_signals = 0;
+
+    // Open plot file for writing trades 10,000 to 12,000
+    FILE *out = fopen("plots/signals_stageB_running.dat", "w");
 
     // TIMED BENCHMARK: Process trades directly out of RAM (Pure CPU timing)
     uint64_t start_time = now_ns();
@@ -65,19 +76,29 @@ int main(void) {
         sma_update(&short_sma, price);
         sma_update(&long_sma, price);
 
+        double s_val = 0.0;
+        double l_val = 0.0;
+        int signal = SIGNAL_NONE;
+
         // Only compute SMA and update signal when both windows are full
         if (sma_is_full(&long_sma)) {
-            double s_val = sma_calculate_running(&short_sma);
-            double l_val = sma_calculate_running(&long_sma);
+            s_val = sma_calculate_running(&short_sma);
+            l_val = sma_calculate_running(&long_sma);
 
-            int signal = signal_update(&sig_st, s_val, l_val);
+            signal = signal_update(&sig_st, s_val, l_val);
 
             if (signal == SIGNAL_BUY)  buy_signals++;
             if (signal == SIGNAL_SELL) sell_signals++;
         }
+
+        // Write trades 10,000 to 12,000 to plot file
+        if (out && (i + 1) >= 10000 && (i + 1) <= 12000) {
+            fprintf(out, "%d %.8f %.8f %.8f %d\n", i + 1, price, s_val, l_val, signal);
+        }
     }
 
     uint64_t end_time = now_ns();
+    if (out) fclose(out);
 
     uint64_t elapsed_ns = end_time - start_time;
     double elapsed_ms = (double)elapsed_ns / 1000000.0;

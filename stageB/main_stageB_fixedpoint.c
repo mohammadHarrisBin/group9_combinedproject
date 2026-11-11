@@ -8,6 +8,14 @@
 #define MAX_TRADES 1000000
 #define SCALE_FACTOR 100000000LL
 
+#ifndef SHORT_N
+#define SHORT_N 15
+#endif
+
+#ifndef LONG_N
+#define LONG_N 100
+#endif
+
 typedef struct {
     long long ts;
     long long price_fp;
@@ -48,28 +56,24 @@ int sma_fp_is_full(const SMAWindowFP *sma) {
     return sma->count == sma->capacity;
 }
 
-// Simple, exact signal check matching your signal.c
-static inline int signal_update_fp_exact(SignalState *st, long long sum15, long long sum100) {
-    // Cross-multiply: (sum15 / 15) - (sum100 / 100) ==> (100 * sum15 - 15 * sum100)
-    double curr_diff = (double)(sum15 * 100LL - sum100 * 15LL) / (1500.0 * (double)SCALE_FACTOR);
+// Pure integer cross-multiplication crossover comparison
+static inline int signal_update_fp_exact(SignalState *st, long long sum_short, long long sum_long) {
+    long long d = (sum_short * (long long)LONG_N) - (sum_long * (long long)SHORT_N);
+    
     int sig = SIGNAL_NONE;
-
     if (!st->initialized) {
-        st->prev_diff = curr_diff;
+        st->prev_diff = (double)d;
         st->initialized = 1;
         return SIGNAL_NONE;
     }
 
-    if (st->prev_diff <= 0.0 && curr_diff > 0.0) {
-        sig = SIGNAL_BUY;
-    } 
-    else if (st->prev_diff >= 0.0 && curr_diff < 0.0) {
-        sig = SIGNAL_SELL;
-    }
+    if (st->prev_diff <= 0.0 && d > 0) sig = SIGNAL_BUY;
+    else if (st->prev_diff >= 0.0 && d < 0) sig = SIGNAL_SELL;
 
-    st->prev_diff = curr_diff;
+    st->prev_diff = (double)d;
     return sig;
 }
+
 
 int main(void) {
     if (!open_data(DEV)) {
@@ -94,8 +98,12 @@ int main(void) {
     fprintf(stderr, "Loaded %d trades into Fixed-Point RAM. Starting benchmark...\n", trade_count);
 
     SMAWindowFP short_sma, long_sma;
-    sma_fp_init(&short_sma, 15);
-    sma_fp_init(&long_sma, 100);
+    sma_fp_init(&short_sma, SHORT_N);
+    sma_fp_init(&long_sma, LONG_N);
+
+    // Initialize indicator states
+    VWAPState vwap; vwap_init(&vwap);
+    OHLCState ohlc, completed_bar; ohlc_init(&ohlc);
 
     SignalState sig_st; 
     signal_init(&sig_st);
@@ -109,6 +117,12 @@ int main(void) {
 
     for (int i = 0; i < trade_count; i++) {
         long long p_fp = trades_fp[i].price_fp;
+        long long q_fp = trades_fp[i].qty_fp;
+        long long ts   = trades_fp[i].ts;
+
+        // Convert back to double for VWAP/OHLC tracking so all rungs do equal work
+        vwap_update(&vwap, (double)p_fp / (double)SCALE_FACTOR, (double)q_fp / (double)SCALE_FACTOR);
+        ohlc_update(&ohlc, ts, (double)p_fp / (double)SCALE_FACTOR, &completed_bar);
 
         sma_fp_update(&short_sma, p_fp);
         sma_fp_update(&long_sma, p_fp);

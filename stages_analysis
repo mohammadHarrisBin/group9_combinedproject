@@ -1,0 +1,84 @@
+==================== STAGE A (STREAMING) ====================
+Total Trades Processed : 1000000
+BUY Signals Raised     : 2292
+SELL Signals Raised    : 2286
+Total Run Time         : 29395441976 ns (29395.442 ms)
+Time Per Trade         : 29395.44 ns/trade
+Throughput             : 34018.88 trades/sec
+=============================================================
+
+==================== STAGE A+ (FAST READER) ====================
+Total Trades Processed : 1000000
+BUY Signals Raised     : 2292
+SELL Signals Raised    : 2286
+Total Run Time         : 28709211468 ns (28709.211 ms)
+Time Per Trade         : 28709.21 ns/trade
+Throughput             : 34832.03 trades/sec
+================================================================
+
+=========== STAGE B (RAM) | Naive SMA ===============
+Total Trades Processed : 1000000
+BUY Signals Raised     : 2292
+SELL Signals Raised    : 2286
+Total Run Time         : 277832702 ns (277.833 ms)
+Time Per Trade         : 277.83 ns/trade
+Throughput             : 3599288.32 trades/sec
+=======================================================
+
+BEFORE: 
+=========== STAGE B (RAM | Running SMA) =============
+Total Trades Processed : 1000000
+BUY Signals Raised     : 2292
+SELL Signals Raised    : 2285
+Total Run Time         : 25896301 ns (25.896 ms)
+Time Per Trade         : 25.90 ns/trade
+Throughput             : 38615553.63 trades/sec
+=======================================================
+
+AFTER:
+=========== STAGE B (RAM | Running SMA) =============
+Total Trades Processed : 1000000
+BUY Signals Raised     : 2292
+SELL Signals Raised    : 2286
+Total Run Time         : 22977400 ns (22.977 ms)
+Time Per Trade         : 22.98 ns/trade
+Throughput             : 43521025.01 trades/sec
+=======================================================
+
+==================== STAGE B (FIXED-POINT LONG LONG) ====================
+Total Trades Processed : 1000000
+BUY Signals Raised     : 2292
+SELL Signals Raised    : 2286
+Total Run Time         : 126846903 ns (126.847 ms)
+Time Per Trade         : 126.85 ns/trade
+Throughput             : 7883519.24 trades/sec
+=========================================================================
+
+==================== STAGE B (DYNAMIC MALLOC) ====================
+Total Trades Processed : 1000000
+BUY Signals Raised     : 2292
+SELL Signals Raised    : 2286
+Total Run Time         : 234631060 ns (234.631 ms)
+Time Per Trade         : 234.63 ns/trade
+Throughput             : 4262010.32 trades/sec
+==================================================================
+
+
+==================== STAGE C SUMMARY RESULTS ====================
+Total Trades Processed : 8928944
+BUY / SELL Signals     : 13452 BUY / 13438 SELL
+Average Trade Latency  : 53.47 ns
+Worst-Case Latency     : 461000 ns (461.000 us)
+==================================================================
+
+--- RIVAL BOT SWEEP RESULTS (plots/rival_sweep.dat) ---
+R_us            P&L (USDT)      Wins    Losses
+0.1 us          114203.33               23123   2860
+0.5 us          114386.13               25877   106
+1.0 us          114387.37               25963   20
+2.0 us          114387.37               25976   7
+5.0 us          114388.63               25980   3
+10.0 us         114388.63               25981   2
+20.0 us         114388.64               25983   0
+50.0 us         114388.64               25983   0
+100.0 us                114388.64               25983   0

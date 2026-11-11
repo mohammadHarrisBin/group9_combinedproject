@@ -6,6 +6,16 @@
 #include "signal.h"
 #include "timing.h"
 
+
+#ifndef SHORT_N
+#define SHORT_N 15
+#endif
+
+#ifndef LONG_N
+#define LONG_N 100
+#endif
+
+
 /*
     load every trade into a fixed size global 
     array of structs 
@@ -48,17 +58,17 @@ int main(void) {
     VWAPState vwap; vwap_init(&vwap);
     OHLCState ohlc, completed_bar; ohlc_init(&ohlc);
 
-    double short_buf[15], long_buf[100];
+    double short_buf[SHORT_N], long_buf[LONG_N];
     SMAWindow short_sma, long_sma;
-    sma_init(&short_sma, short_buf, 15);
-    sma_init(&long_sma, long_buf, 100);
+    sma_init(&short_sma, short_buf, SHORT_N);
+    sma_init(&long_sma, long_buf, LONG_N);
 
     SignalState sig_st; signal_init(&sig_st);
 
     int buy_signals = 0;
     int sell_signals = 0;
 
-    FILE *out = fopen("plots/signals_stageB.dat", "w");
+    FILE *out = fopen("plots/signals_stageB_naive.dat", "w");
 
     // TIMED BENCHMARK: Process trades directly out of RAM
     uint64_t start_time = now_ns();

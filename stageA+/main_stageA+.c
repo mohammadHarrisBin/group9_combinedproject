@@ -6,13 +6,22 @@
 #include "signal.h"
 #include "timing.h"
 
+#ifndef SHORT_N
+#define SHORT_N 15
+#endif
+
+#ifndef LONG_N
+#define LONG_N 100
+#endif
+
+
 int main(void) {
     if (!open_data(DEV)) {
         fprintf(stderr, "Error: Could not open DEV dataset.\n");
         return 1;
     }
 
-    FILE *out = fopen("plots/signals.dat", "w");
+    FILE *out = fopen("plots/signals_stageA_plus.dat", "w");
     if (!out) {
         fprintf(stderr, "Error: Could not open plots/signals.dat for writing.\n");
         close_trades();
@@ -26,10 +35,10 @@ int main(void) {
     VWAPState vwap; vwap_init(&vwap);
     OHLCState ohlc, completed_bar; ohlc_init(&ohlc);
 
-    double short_buf[15], long_buf[100];
+    double short_buf[SHORT_N], long_buf[LONG_N];
     SMAWindow short_sma, long_sma;
-    sma_init(&short_sma, short_buf, 15);
-    sma_init(&long_sma, long_buf, 100);
+    sma_init(&short_sma, short_buf, SHORT_N);
+    sma_init(&long_sma, long_buf, LONG_N);
 
     SignalState sig_st; signal_init(&sig_st);
 

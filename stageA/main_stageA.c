@@ -6,6 +6,15 @@
 #include "signal.h"
 #include "timing.h"
 
+#ifndef SHORT_N
+#define SHORT_N 15
+#endif
+
+#ifndef LONG_N
+#define LONG_N 100
+#endif
+
+
 int main(void) {
     // Opening the dataset using the trade_io.c
     if (!open_data(DEV)) {
@@ -38,10 +47,12 @@ int main(void) {
         the buffer is based on our group 9 s
         short=15 long=100
     */
-    double short_buf[15], long_buf[100];
+
+    // refer to the top
+    double short_buf[SHORT_N], long_buf[LONG_N];
     SMAWindow short_sma, long_sma;
-    sma_init(&short_sma, short_buf, 15);
-    sma_init(&long_sma, long_buf, 100);
+    sma_init(&short_sma, short_buf, SHORT_N);
+    sma_init(&long_sma, long_buf, LONG_N);
 
     // initialise the signal state
     SignalState sig_st; signal_init(&sig_st);

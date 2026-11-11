@@ -7,7 +7,14 @@
 #include "signal.h"
 #include "timing.h"
 
-#define MAX_TRADES 1000000
+// Macro defaults for Group 09 window parameters (can be overridden via Makefile compiler flags -D)
+#ifndef SHORT_N
+#define SHORT_N 15
+#endif
+
+#ifndef LONG_N
+#define LONG_N 100
+#endif
 
 typedef struct {
     long long ts;
@@ -22,10 +29,38 @@ int main(void) {
         return 1;
     }
 
-    // 1. DYNAMIC MEMORY ALLOCATION (Heap Memory)
-    Trade *trades = (Trade *)malloc(MAX_TRADES * sizeof(Trade));
+    // =========================================================================
+    // 1. DYNAMIC MEMORY ALLOCATION (Exact-Fit Heap Allocation)
+    // First, scan the CSV file with a fast byte-buffer to count exact newlines.
+    // This avoids over-allocating unused RAM or hitting hard-coded limits.
+    // =========================================================================
+    FILE *fp_count = fopen("Datasets/dev_1M.csv", "r");
+    if (!fp_count) {
+        // Fallback check if executing directly from the dataset folder
+        fp_count = fopen("dev_1M.csv", "r");
+    }
+
+    size_t line_count = 0;
+    if (fp_count != NULL) {
+        char count_buf[65536];
+        size_t bytes_read;
+        while ((bytes_read = fread(count_buf, 1, sizeof(count_buf), fp_count)) > 0) {
+            for (size_t i = 0; i < bytes_read; i++) {
+                if (count_buf[i] == '\n') {
+                    line_count++;
+                }
+            }
+        }
+        fclose(fp_count);
+    } else {
+        // Backup fallback size if file pointer path is unreadable
+        line_count = 1000000;
+    }
+
+    // Allocate heap memory for the EXACT number of trades in the dataset
+    Trade *trades = (Trade *)malloc(line_count * sizeof(Trade));
     if (trades == NULL) {
-        fprintf(stderr, "Error: Failed to allocate memory for %d trades.\n", MAX_TRADES);
+        fprintf(stderr, "Error: Failed to allocate heap memory for %zu trades.\n", line_count);
         close_trades();
         return 1;
     }
@@ -36,7 +71,7 @@ int main(void) {
     double raw_price, raw_qty;
     int raw_buy;
 
-    while (trade_count < MAX_TRADES && read_trade(&raw_ts, &raw_price, &raw_qty, &raw_buy)) {
+    while (trade_count < (int)line_count && read_trade(&raw_ts, &raw_price, &raw_qty, &raw_buy)) {
         trades[trade_count].ts = raw_ts;
         trades[trade_count].price = raw_price;
         trades[trade_count].qty = raw_qty;
@@ -45,15 +80,20 @@ int main(void) {
     }
     close_trades();
 
-    fprintf(stderr, "Loaded %d trades into Heap Memory (malloc). Starting benchmark...\n", trade_count);
+    fprintf(stderr, "Loaded %d trades into Heap Memory (Exact malloc: %zu bytes). Starting benchmark...\n", 
+            trade_count, line_count * sizeof(Trade));
 
-    // Dynamic buffers for SMA windows
-    double short_buf[15];
-    double long_buf[100];
+    // Dynamic buffers for SMA windows (using SHORT_N and LONG_N macros)
+    double short_buf[SHORT_N];
+    double long_buf[LONG_N];
 
     SMAWindow short_sma, long_sma;
-    sma_init(&short_sma, short_buf, 15);
-    sma_init(&long_sma, long_buf, 100);
+    sma_init(&short_sma, short_buf, SHORT_N);
+    sma_init(&long_sma, long_buf, LONG_N);
+
+    // Initialize indicator states
+    VWAPState vwap; vwap_init(&vwap);
+    OHLCState ohlc, completed_bar; ohlc_init(&ohlc);
 
     SignalState sig_st;
     signal_init(&sig_st);
@@ -67,7 +107,12 @@ int main(void) {
     uint64_t start_time = now_ns();
 
     for (int i = 0; i < trade_count; i++) {
+        long long ts = trades[i].ts;
         double p = trades[i].price;
+        double q = trades[i].qty;
+
+        vwap_update(&vwap, p, q);
+        ohlc_update(&ohlc, ts, p, &completed_bar);
 
         sma_update(&short_sma, p);
         sma_update(&long_sma, p);

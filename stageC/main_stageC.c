@@ -9,7 +9,14 @@
 #include "timing.h"
 #include "led.h"
 
-// #define MAX_TRADES 8928944
+// Preprocessor defaults for window parameters (can be overridden via Makefile compiler flags)
+#ifndef SHORT_N
+#define SHORT_N 15
+#endif
+
+#ifndef LONG_N
+#define LONG_N 100
+#endif
 
 typedef struct {
     long long ts;
@@ -42,11 +49,10 @@ int main(int argc, char *argv[]) {
     fprintf(stderr, "Replay Speed Target: %.0fx\n", replay_speed);
 
     if (!open_data(STRESS)) {
-        fprintf(stderr, "Error: Could not open DEV dataset.\n");
+        fprintf(stderr, "Error: Could not open STRESS dataset.\n");
         return 1;
     }
 
-    // Trade *trades = (Trade *)malloc(MAX_TRADES * sizeof(Trade));
     if (trades == NULL) {
         fprintf(stderr, "Error: Failed to allocate memory for %d trades.\n", capacity);
         close_trades();
@@ -79,15 +85,25 @@ int main(int argc, char *argv[]) {
     }
     close_trades();
 
-    fprintf(stderr, "Loaded %d trades into Heap Memory. Starting Replay...\n\n", trade_count);
+    // =========================================================================
+    // TRIM STEP: Shrink heap memory down from doubled capacity (e.g. 16M)
+    // to the exact trade count (~8.9M) to eliminate wasted RAM.
+    // =========================================================================
+    Trade *trimmed_trades = (Trade *)realloc(trades, trade_count * sizeof(Trade));
+    if (trimmed_trades != NULL) {
+        trades = trimmed_trades;
+    }
+
+    fprintf(stderr, "Loaded %d trades into Heap Memory (Trimmed exact fit). Starting Replay...\n\n", trade_count);
 
     led_init();
+    uint64_t led_off_timestamp = 0; // Non-blocking LED off deadline
 
-    double short_buf[15];
-    double long_buf[100];
+    double short_buf[SHORT_N];
+    double long_buf[LONG_N];
     SMAWindow short_sma, long_sma;
-    sma_init(&short_sma, short_buf, 15);
-    sma_init(&long_sma, long_buf, 100);
+    sma_init(&short_sma, short_buf, SHORT_N);
+    sma_init(&long_sma, long_buf, LONG_N);
 
     SignalState sig_st;
     signal_init(&sig_st);
@@ -115,7 +131,7 @@ int main(int argc, char *argv[]) {
     uint64_t replay_start_wall_ns = now_ns();
 
     for (int i = 0; i < trade_count; i++) {
-        // --- Replay Timing Control ---
+        // --- Replay Timing & Lag Counter ---
         long long dataset_elapsed_us = trades[i].ts - first_trade_ts;
         double target_elapsed_ns = ((double)dataset_elapsed_us * 1000.0) / replay_speed;
 
@@ -125,6 +141,20 @@ int main(int argc, char *argv[]) {
             if (wait_ms >= 1.0) {
                 sleep_ms((int)wait_ms);
             }
+        }
+
+        // Calculate current lag behind wall clock for race display
+        int64_t lag_ms = 0;
+        current_wall_ns = now_ns() - replay_start_wall_ns;
+        if ((double)current_wall_ns > target_elapsed_ns) {
+            lag_ms = (int64_t)(((double)current_wall_ns - target_elapsed_ns) / 1000000.0);
+        }
+
+        // --- Non-Blocking LED Auto-Off Check ---
+        if (led_off_timestamp > 0 && now_ns() >= led_off_timestamp) {
+            led_off(LED_GREEN);
+            led_off(LED_RED);
+            led_off_timestamp = 0;
         }
 
         // --- Processing Latency Timing ---
@@ -159,8 +189,10 @@ int main(int argc, char *argv[]) {
         if (signal == SIGNAL_BUY) {
             buy_signals++;
             led_on(LED_GREEN);
-            printf("\033[1;32m[BUY SIGNAL #%d] Trade #%d | Price: %.2f | Latency: %llu ns\033[0m\n",
-                   buy_signals, i + 1, p, (unsigned long long)trade_latency);
+            led_off_timestamp = now_ns() + 150000000ULL; // Hold LED lit for 150 ms
+
+            printf("\033[1;32m[BUY SIGNAL #%d] Trade #%d | Price: %.2f | Latency: %llu ns | Lag: %lld ms\033[0m\n",
+                   buy_signals, i + 1, p, (unsigned long long)trade_latency, (long long)lag_ms);
 
             for (int k = 0; k < num_r; k++) {
                 if (!bots[k].holding) {
@@ -175,12 +207,13 @@ int main(int argc, char *argv[]) {
                     bots[k].holding = 1;
                 }
             }
-            led_off(LED_GREEN);
         } else if (signal == SIGNAL_SELL) {
             sell_signals++;
             led_on(LED_RED);
-            printf("\033[1;31m[SELL SIGNAL #%d] Trade #%d | Price: %.2f | Latency: %llu ns\033[0m\n",
-                   sell_signals, i + 1, p, (unsigned long long)trade_latency);
+            led_off_timestamp = now_ns() + 150000000ULL; // Hold LED lit for 150 ms
+
+            printf("\033[1;31m[SELL SIGNAL #%d] Trade #%d | Price: %.2f | Latency: %llu ns | Lag: %lld ms\033[0m\n",
+                   sell_signals, i + 1, p, (unsigned long long)trade_latency, (long long)lag_ms);
 
             for (int k = 0; k < num_r; k++) {
                 if (bots[k].holding) {
@@ -195,10 +228,12 @@ int main(int argc, char *argv[]) {
                     bots[k].holding = 0;
                 }
             }
-            led_off(LED_RED);
         }
     }
 
+    // Ensure status LED is cleared on shutdown
+    led_off(LED_GREEN);
+    led_off(LED_RED);
     led_cleanup();
     free(trades);
 
@@ -212,17 +247,30 @@ int main(int argc, char *argv[]) {
             (unsigned long long)worst_latency_ns, (double)worst_latency_ns / 1000.0);
     fprintf(stderr, "==================================================================\n");
 
-    // Write Rival Sweep results to file for plotting
+    // Write Rival Sweep results to file and terminal with clean fixed-width formatting
     FILE *sweep_out = fopen("plots/rival_sweep.dat", "w");
     if (sweep_out) {
         fprintf(stderr, "\n--- RIVAL BOT SWEEP RESULTS (plots/rival_sweep.dat) ---\n");
-        fprintf(stderr, "R_us\t\tP&L (USDT)\tWins\tLosses\n");
+        fprintf(stderr, "%-10s %-16s %-10s %-10s\n", "R_us", "P&L (USDT)", "Wins", "Losses");
+        fprintf(stderr, "-----------------------------------------------------\n");
+        
         for (int k = 0; k < num_r; k++) {
-            double pnl = bots[k].total_sell_revenue - bots[k].total_buy_cost;
-            fprintf(stderr, "%.1f us\t\t%.2f\t\t%d\t%d\n",
-                    r_values_us[k], pnl, bots[k].bot_wins, bots[k].rival_wins);
+            char r_str[16];
+            snprintf(r_str, sizeof(r_str), "%.1f us", r_values_us[k]);
+            
+            // Fixed width formatting for clean aligned columns
+            fprintf(stderr, "%-10s %-16.2f %-10d %-10d\n",
+                    r_str, 
+                    bots[k].total_sell_revenue - bots[k].total_buy_cost, 
+                    bots[k].bot_wins, 
+                    bots[k].rival_wins);
+
+            // Output data file for gnuplot script
             fprintf(sweep_out, "%.1f %.2f %d %d\n",
-                    r_values_us[k], pnl, bots[k].bot_wins, bots[k].rival_wins);
+                    r_values_us[k], 
+                    bots[k].total_sell_revenue - bots[k].total_buy_cost, 
+                    bots[k].bot_wins, 
+                    bots[k].rival_wins);
         }
         fclose(sweep_out);
     }
