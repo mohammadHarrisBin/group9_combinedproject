@@ -1,0 +1,52 @@
+Stage 0 — Part B (stage0_partb.c)
+Definition:
+Compare iterative and recursive summation for N = 10,000 repeated 10,000 times while driving the green onboard LED[cite: 6, 20].
+
+Analysis:
+1. Recursion is capped at N = 10,000 so the call stack does not overflow[cite: 6, 7, 20].
+2. Each recursive call allocates a new stack frame, making it significantly slower than iteration[cite: 6, 7].
+3. Use volatile on sum variables so -O2/-O3 compilers do not optimize away the 10,000 repeated calls[cite: 20].
+4. Toggle LED_GREEN via led.h before and after each benchmark loop to show execution duration visually[cite: 6, 20].
+
+Algorithm design:
+FUNCTION iter_func(N)
+    sum <- 0
+    FOR i <- 1 TO N
+        sum <- sum + i
+    ENDFOR
+    RETURN sum
+ENDFUNCTION
+
+FUNCTION recurr_func(N)
+    IF N <= 1 THEN
+        RETURN N
+    ENDIF
+    RETURN N + recurr_func(N - 1)
+ENDFUNCTION
+
+BEGIN
+    led_init()
+    N <- 10000
+    REPEATS <- 10000
+
+    // Iterative Benchmark
+    led_on(LED_GREEN)
+    start_time <- now_ns()
+    FOR i <- 0 TO REPEATS - 1
+        iter_sum <- iter_func(N)
+    ENDFOR
+    iter_elapsed_time <- now_ns() - start_time
+    led_off(LED_GREEN)
+
+    // Recursive Benchmark
+    led_on(LED_GREEN)
+    start_time <- now_ns()
+    FOR i <- 0 TO REPEATS - 1
+        recurr_sum <- recurr_func(N)
+    ENDFOR
+    recurr_elapsed_time <- now_ns() - start_time
+    led_off(LED_GREEN)
+
+    PRINT iter_sum, iter_elapsed_time, recurr_sum, recurr_elapsed_time
+    led_cleanup()
+END

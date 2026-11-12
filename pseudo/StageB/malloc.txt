@@ -1,0 +1,89 @@
+Stage B — Dynamic Heap Allocation (main_stageB_malloc.c)
+Definition:
+Count the exact number of newline records in the 
+CSV dataset first and allocate an exact-fit array 
+of Trade structs on the heap via malloc() instead 
+of using a hardcoded static array.
+
+Analysis:
+1. Scanning newline characters with a 64 KB fread buffer 
+determines the exact dataset size before calling malloc(), 
+preventing wasted RAM or fixed-array overflows.
+
+2. Runs in 234.63 ms (4.26M trades/sec) with 100% signal parity
+(2292 BUY / 2286 SELL), showing contiguous heap memory accesses
+benefit from CPU cache prefetching just like static BSS arrays.
+
+3. Frees allocated heap memory via free(trades) after timing 
+completes to ensure zero memory leaks.
+
+Algorithm Design:
+BEGIN
+    open DEV dataset
+    open "Datasets/dev_1M.csv" for line counting
+    line_count <- 0
+
+    WHILE fread chunk from file > 0
+        FOR each byte in chunk
+            IF byte = '\n' THEN
+                line_count <- line_count + 1
+            ENDIF
+        ENDFOR
+    ENDWHILE
+    close file
+
+    trades <- malloc(line_count * size of Trade)
+    trade_count <- 0
+
+    WHILE trade_count < line_count AND read_trade(raw_ts, raw_price, raw_qty, raw_buy)
+        trades[trade_count] <- (raw_ts, raw_price, raw_qty, raw_buy)
+        trade_count <- trade_count + 1
+    ENDWHILE
+    close trades
+
+    vwap <- 0
+    ohlc <- 0
+    short_sma <- 0
+    long_sma <- 0
+    sig_st <- 0
+    buy_signals <- 0
+    sell_signals <- 0
+    open "plots/signals_stageB_malloc.dat"
+
+    start_time <- now_ns()
+
+    FOR i <- 0 TO trade_count - 1
+        READ ts, p, q from trades[i]
+        update vwap, ohlc, short_sma, long_sma
+        s_val <- 0
+        l_val <- 0
+        IF short_sma is full THEN
+            s_val <- sma_calculate_naive(short_sma)
+        ENDIF
+        IF long_sma is full THEN
+            l_val <- sma_calculate_naive(long_sma)
+        ENDIF
+        signal <- SIGNAL_NONE
+        IF short_sma is full AND long_sma is full THEN
+            signal <- signal_update(sig_st, s_val, l_val)
+        ENDIF
+        IF signal = SIGNAL_BUY THEN
+            buy_signals <- buy_signals + 1
+        ENDIF
+        IF signal = SIGNAL_SELL THEN
+            sell_signals <- sell_signals + 1
+        ENDIF
+        IF (i + 1) >= 10000 AND (i + 1) <= 12000 THEN
+            PRINT (i + 1), p, s_val, l_val, signal to file
+        ENDIF
+    ENDFOR
+
+    end_time <- now_ns()
+    close file
+    free(trades)
+    elapsed_ns <- end_time - start_time
+    elapsed_ms <- elapsed_ns / 1000000
+    ns_per_trade <- elapsed_ns / trade_count
+    trades_per_sec <- trade_count / (elapsed_ns / 1000000000)
+    PRINT trade_count, buy_signals, sell_signals, elapsed_ns, elapsed_ms, ns_per_trade, trades_per_sec
+END

@@ -1,0 +1,147 @@
+Stage C — Real-Time Replay, Dynamic Realloc & Rival Bot Sweep (main_stageC.c)
+Definition:
+Load the full STRESS dataset dynamically using capacity-doubling
+realloc() followed by an exact-fit trim, replay trades 
+at a target speed multiplier while blinking the onboard 
+LEDs without blocking, and simulate P&L across rival bot
+reaction times (0.1 us to 100 us).
+
+Analysis:
+1. Starts with an initial heap allocation of 
+1,000,000 Trade structs and doubles capacity via realloc() 
+whenever full. Because doubling 8,000,000 to 16,000,000 
+leaves ~7.07M unused struct slots (~226 MB wasted RAM) for 
+8,928,944 trades, a final realloc() trim shrinks the buffer 
+to the exact trade count.
+
+2. Uses a non-blocking timestamp deadline (led_off_timestamp) 
+to hold the Green/Red LEDs on for 150 ms without pausing 
+the trading loop, preserving an average per-trade latency 
+of 53.47 ns.
+
+3. Evaluates 9 rival reaction thresholds simultaneously: 
+when trade_latency <= R, the engine fills at the current 
+trade price; otherwise, it slips to trades[i + 1].price.
+
+Pseudocode
+
+BEGIN
+    capacity <- 1000000
+    trades <- malloc(capacity * size of Trade)
+    READ replay_speed (default 1000)
+    open STRESS dataset
+    trade_count <- 0
+
+    WHILE read_trade(raw_ts, raw_price, raw_qty, raw_buy)
+        IF trade_count >= capacity THEN
+            capacity <- capacity * 2
+            trades <- realloc(trades, capacity * size of Trade)
+        ENDIF
+        trades[trade_count] <- (raw_ts, raw_price, raw_qty, raw_buy)
+        trade_count <- trade_count + 1
+    ENDWHILE
+    close trades
+
+    // Trim doubled capacity down to exact trade_count to save RAM
+    trades <- realloc(trades, trade_count * size of Trade)
+
+    led_init()
+    led_off_timestamp <- 0
+    short_sma <- 0
+    long_sma <- 0
+    sig_st <- 0
+    bots[0..8] <- 0
+    total_latency_ns <- 0
+    worst_latency_ns <- 0
+    buy_signals <- 0
+    sell_signals <- 0
+    first_trade_ts <- trades[0].ts
+    replay_start_wall_ns <- now_ns()
+
+    FOR i <- 0 TO trade_count - 1
+        target_elapsed_ns <- ((trades[i].ts - first_trade_ts) * 1000) / replay_speed
+        current_wall_ns <- now_ns() - replay_start_wall_ns
+        IF target_elapsed_ns > current_wall_ns THEN
+            sleep_ms((target_elapsed_ns - current_wall_ns) / 1000000)
+        ENDIF
+
+        IF led_off_timestamp > 0 AND now_ns() >= led_off_timestamp THEN
+            led_off(LED_GREEN)
+            led_off(LED_RED)
+            led_off_timestamp <- 0
+        ENDIF
+
+        proc_start <- now_ns()
+        READ p from trades[i]
+        update short_sma, long_sma with p
+        s_val <- 0
+        l_val <- 0
+        IF short_sma is full THEN
+            s_val <- sma_calculate_running(short_sma)
+        ENDIF
+        IF long_sma is full THEN
+            l_val <- sma_calculate_running(long_sma)
+        ENDIF
+        signal <- SIGNAL_NONE
+        IF short_sma is full AND long_sma is full THEN
+            signal <- signal_update(sig_st, s_val, l_val)
+        ENDIF
+        trade_latency <- now_ns() - proc_start
+
+        total_latency_ns <- total_latency_ns + trade_latency
+        IF trade_latency > worst_latency_ns THEN
+            worst_latency_ns <- trade_latency
+        ENDIF
+
+        IF signal = SIGNAL_BUY THEN
+            buy_signals <- buy_signals + 1
+            led_on(LED_GREEN)
+            led_off_timestamp <- now_ns() + 150000000
+            PRINT buy alert and lag
+            FOR k <- 0 TO 8
+                IF bots[k].holding = 0 THEN
+                    IF trade_latency <= bots[k].r_ns THEN
+                        bots[k].total_buy_cost <- bots[k].total_buy_cost + p
+                        bots[k].bot_wins <- bots[k].bot_wins + 1
+                    ELSE
+                        bots[k].total_buy_cost <- bots[k].total_buy_cost + trades[i + 1].price
+                        bots[k].rival_wins <- bots[k].rival_wins + 1
+                    ENDIF
+                    bots[k].holding <- 1
+                ENDIF
+            ENDFOR
+        ELSE IF signal = SIGNAL_SELL THEN
+            sell_signals <- sell_signals + 1
+            led_on(LED_RED)
+            led_off_timestamp <- now_ns() + 150000000
+            PRINT sell alert and lag
+            FOR k <- 0 TO 8
+                IF bots[k].holding = 1 THEN
+                    IF trade_latency <= bots[k].r_ns THEN
+                        bots[k].total_sell_revenue <- bots[k].total_sell_revenue + p
+                        bots[k].bot_wins <- bots[k].bot_wins + 1
+                    ELSE
+                        bots[k].total_sell_revenue <- bots[k].total_sell_revenue + trades[i + 1].price
+                        bots[k].rival_wins <- bots[k].rival_wins + 1
+                    ENDIF
+                    bots[k].holding <- 0
+                ENDIF
+            ENDFOR
+        ENDIF
+    ENDFOR
+
+    led_off(LED_GREEN)
+    led_off(LED_RED)
+    led_cleanup()
+    free(trades)
+
+    avg_latency_ns <- total_latency_ns / trade_count
+    PRINT trade_count, buy_signals, sell_signals, avg_latency_ns, worst_latency_ns
+
+    open "plots/rival_sweep.dat"
+    FOR k <- 0 TO 8
+        pnl <- bots[k].total_sell_revenue - bots[k].total_buy_cost
+        PRINT r_values_us[k], pnl, bots[k].bot_wins, bots[k].rival_wins to terminal and file
+    ENDFOR
+    close file
+END

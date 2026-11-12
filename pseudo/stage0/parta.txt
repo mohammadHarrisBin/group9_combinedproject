@@ -1,0 +1,27 @@
+Stage 0 — Part A (stage0_parta.c)
+Definition:
+Loop iteratively up to N (100,000,000) using 64-bit unsigned integers across compiler optimization flags (-O0 to -O3)[cite: 6, 19].
+
+Analysis:
+1. Each iteration takes around 1 nanosecond, so 100,000,000 repetitions takes a fraction of a second to measure accurately[cite: 6].
+2. unsigned long long is used because a 32-bit int overflows at ~2.14 x 10^9, whereas the sum reaches ~5 x 10^15[cite: 19].
+3. Track execution time using now_ns() from timing.h[cite: 6, 19].
+
+Algorithm design:
+BEGIN
+    counter <- 1
+    sum <- 0
+    READ N
+
+    start_time <- now_ns()
+
+    WHILE counter <= N
+        sum <- sum + counter
+        counter <- counter + 1
+    ENDWHILE
+
+    end_time <- now_ns()
+    elapsed_time <- end_time - start_time
+
+    PRINT sum and elapsed_time
+END

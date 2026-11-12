@@ -1,0 +1,73 @@
+Stage B — Fixed-Point Integer Engine (main_stageB_fixedpoint.c)
+Definition:
+Replace 64-bit floating-point double prices and quantities 
+with 64-bit scaled integers (long long multiplied by 10^8) 
+and evaluate SMA crossovers using pure integer 
+cross-multiplication.
+
+Analysis:
+1. Executes SMA running-sum updates and crossover checks 
+((sum_short * LONG_N) - (sum_long * SHORT_N)) 
+on standard Integer ALUs without floating-point division.
+
+2. Runs in 126.85 ms (7.88M trades/sec)—more than 2.19x faster
+than the naive double engine—while still updating double VWAP
+and OHLC bars for equal workload comparison.
+
+3. Scaling by 10^8 preserves 8 decimal places of precision
+and achieves 100% identical crossover signals 
+(2292 BUY / 2286 SELL) with zero floating-point drift.
+
+Algorithm Design:
+BEGIN
+    open DEV dataset
+    trade_count <- 0
+
+    WHILE trade_count < 1000000 AND read_trade(raw_ts, raw_price, raw_qty, raw_buy)
+        trades_fp[trade_count].ts <- raw_ts
+        trades_fp[trade_count].price_fp <- raw_price * 100000000 + 0.5
+        trades_fp[trade_count].qty_fp <- raw_qty * 100000000 + 0.5
+        trades_fp[trade_count].is_buy <- raw_buy
+        trade_count <- trade_count + 1
+    ENDWHILE
+    close trades
+
+    short_sma <- 0
+    long_sma <- 0
+    vwap <- 0
+    ohlc <- 0
+    sig_st <- 0
+    buy_signals <- 0
+    sell_signals <- 0
+    open "plots/signals_stageB_fp.dat"
+
+    start_time <- now_ns()
+
+    FOR i <- 0 TO trade_count - 1
+        READ ts, p_fp, q_fp from trades_fp[i]
+        update vwap, ohlc using (p_fp / 100000000)
+        update short_sma, long_sma with p_fp
+        signal <- SIGNAL_NONE
+        IF short_sma is full AND long_sma is full THEN
+            d <- (short_sma.running_sum * LONG_N) - (long_sma.running_sum * SHORT_N)
+            signal <- crossover check using d
+        ENDIF
+        IF signal = SIGNAL_BUY THEN
+            buy_signals <- buy_signals + 1
+        ENDIF
+        IF signal = SIGNAL_SELL THEN
+            sell_signals <- sell_signals + 1
+        ENDIF
+        IF (i + 1) >= 10000 AND (i + 1) <= 12000 THEN
+            PRINT (i + 1), price, s_val, l_val, signal to file
+        ENDIF
+    ENDFOR
+
+    end_time <- now_ns()
+    close file
+    elapsed_ns <- end_time - start_time
+    elapsed_ms <- elapsed_ns / 1000000
+    ns_per_trade <- elapsed_ns / trade_count
+    trades_per_sec <- trade_count / (elapsed_ns / 1000000000)
+    PRINT trade_count, buy_signals, sell_signals, elapsed_ns, elapsed_ms, ns_per_trade, trades_per_sec
+END

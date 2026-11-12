@@ -1,0 +1,71 @@
+Stage A+ — Fast Reader Streaming Engine (main_stageA+.c)
+
+Definition:
+Stream trades sequentially from the CSV dataset using our
+custom pointer-based fast_reader helper instead of trade_io,
+updating VWAP, 1-second OHLC bars, and naive O(N) 
+SMAs (Short = 15, Long = 100) to detect BUY/SELL crossover 
+signals.
+
+Analysis:
+1. Replaces next_trade() (which uses sscanf) 
+with read_trade() from fast_reader.c, 
+cutting string-parsing overhead while keeping the 
+rest of the pipeline identical to Stage A.
+
+2. Uses fixed-size circular array buffers 
+(SHORT_N = 15, LONG_N = 100) and sma_calculate_naive(), 
+isolating the exact speedup gained from custom CSV parsing.
+
+3. Outputs trades 10,000 to 12,000 to plots/signals_stageA_plus.dat
+and records total elapsed time via now_ns().
+
+Pseudocode
+
+BEGIN
+    open DEV dataset
+    open "plots/signals_stageA_plus.dat"
+    vwap <- 0
+    ohlc <- 0
+    short_sma <- 0
+    long_sma <- 0
+    sig_st <- 0
+    count <- 0
+    buy_signals <- 0
+    sell_signals <- 0
+    start_time <- now_ns()
+
+    WHILE read_trade(ts, price, qty, is_buy)
+        count <- count + 1
+        update vwap, ohlc, short_sma, long_sma
+        s_val <- 0
+        l_val <- 0
+        IF short_sma is full THEN
+            s_val <- sma_calculate_naive(short_sma)
+        ENDIF
+        IF long_sma is full THEN
+            l_val <- sma_calculate_naive(long_sma)
+        ENDIF
+        signal <- SIGNAL_NONE
+        IF short_sma is full AND long_sma is full THEN
+            signal <- signal_update(sig_st, s_val, l_val)
+        ENDIF
+        IF signal = SIGNAL_BUY THEN
+            buy_signals <- buy_signals + 1
+        ENDIF
+        IF signal = SIGNAL_SELL THEN
+            sell_signals <- sell_signals + 1
+        ENDIF
+        IF count >= 10000 AND count <= 12000 THEN
+            PRINT count, price, s_val, l_val, signal to file
+        ENDIF
+    ENDWHILE
+
+    end_time <- now_ns()
+    close files
+    elapsed_ns <- end_time - start_time
+    elapsed_ms <- elapsed_ns / 1000000
+    ns_per_trade <- elapsed_ns / count
+    trades_per_sec <- count / (elapsed_ns / 1000000000)
+    PRINT count, buy_signals, sell_signals, elapsed_ns, elapsed_ms, ns_per_trade, trades_per_sec
+END

@@ -8,14 +8,13 @@ Time Per Trade         : 273.83 ns/trade
 Throughput             : 3651840.52 trades/sec
 =======================================================
 
-SMA: Running
 =========== STAGE B (RAM | Running SMA) =============
 Total Trades Processed : 1000000
 BUY Signals Raised     : 2289
 SELL Signals Raised    : 2290
-Total Run Time         : 413969287 ns (413.969 ms)
-Time Per Trade         : 413.97 ns/trade
-Throughput             : 2415638.14 trades/sec
+Total Run Time         : 23692400 ns (23.692 ms)
+Time Per Trade         : 23.69 ns/trade
+Throughput             : 42207627.76 trades/sec
 =======================================================
 
 ==================== STAGE B (FIXED-POINT LONG LONG) ====================

@@ -1,5 +1,1 @@
-0. fix(signal): add epsilon snapping to resolve floating-point drift
-1. refactor(sma): parameterize buffers using SHORT_N and LONG_N macros
-2. perf(memory): add exact-fit malloc and stage C realloc memory trimming
-3. fix(stageC): format terminal sweep table and add lag/LED handling
-4. build(makefile): fix test20 warnings and standardize plot output paths
+1. Pseudocode for each stages

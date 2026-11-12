@@ -1,0 +1,71 @@
+Stage B — In-Memory Running-Sum SMA (main_stageB_running.c)
+Definition:
+Replace the naive O(N) window re-summing loop with an O(1)
+running-sum circular buffer over the pre-loaded RAM array 
+of trades.
+
+Analysis:
+1. Updating the window sum in O(1) time 
+(adding the incoming price and subtracting the oldest evicted price)
+cuts runtime from 277.83 ms down to 22.98 ms
+(~12.1x speedup, 43.52M trades/sec).
+
+2. Before fixing floating-point drift on exact SMA ties, 
+running-sum division caused a 1-signal discrepancy 
+(2292 BUY / 2285 SELL).
+
+3. After applying epsilon snapping (1e-6) in signal.c, 
+signal parity matches Stage A 100% (2292 BUY / 2286 SELL).
+
+Algorithm design:
+BEGIN
+    open DEV dataset
+    trade_count <- 0
+
+    WHILE trade_count < 1000000 AND read_trade(ts, price, qty, is_buy)
+        trades[trade_count] <- (ts, price, qty, is_buy)
+        trade_count <- trade_count + 1
+    ENDWHILE
+    close trades
+
+    vwap <- 0
+    ohlc <- 0
+    short_sma <- 0
+    long_sma <- 0
+    sig_st <- 0
+    buy_signals <- 0
+    sell_signals <- 0
+    open "plots/signals_stageB_running.dat"
+
+    start_time <- now_ns()
+
+    FOR i <- 0 TO trade_count - 1
+        READ ts, price, qty from trades[i]
+        update vwap, ohlc, short_sma, long_sma
+        s_val <- 0
+        l_val <- 0
+        signal <- SIGNAL_NONE
+        IF long_sma is full THEN
+            s_val <- sma_calculate_running(short_sma)
+            l_val <- sma_calculate_running(long_sma)
+            signal <- signal_update(sig_st, s_val, l_val)
+            IF signal = SIGNAL_BUY THEN
+                buy_signals <- buy_signals + 1
+            ENDIF
+            IF signal = SIGNAL_SELL THEN
+                sell_signals <- sell_signals + 1
+            ENDIF
+        ENDIF
+        IF (i + 1) >= 10000 AND (i + 1) <= 12000 THEN
+            PRINT (i + 1), price, s_val, l_val, signal to file
+        ENDIF
+    ENDFOR
+
+    end_time <- now_ns()
+    close file
+    elapsed_ns <- end_time - start_time
+    elapsed_ms <- elapsed_ns / 1000000
+    ns_per_trade <- elapsed_ns / trade_count
+    trades_per_sec <- trade_count / (elapsed_ns / 1000000000)
+    PRINT trade_count, buy_signals, sell_signals, elapsed_ns, elapsed_ms, ns_per_trade, trades_per_sec
+END
