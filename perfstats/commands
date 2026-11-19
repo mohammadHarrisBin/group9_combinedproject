@@ -1,0 +1,13 @@
+# Install linux-perf on Raspberry Pi OS
+sudo apt update && sudo apt install -y linux-perf
+
+# Lock CPU governor to performance
+echo performance | sudo tee /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor
+
+# Run perf stat on V0 (-O0)
+make clean && make stageA OPT=-O0
+taskset -c 2 perf stat -e cycles,instructions,L1-dcache-load-misses,LLC-load-misses ./bin/stageA_engine
+
+# Run perf stat on Fastest Version (-O3 -mcpu=cortex-a76)
+make clean && make all OPT=-O3 CPU=-mcpu=cortex-a76
+taskset -c 2 perf stat -e cycles,instructions,L1-dcache-load-misses,LLC-load-misses ./bin/stageB_malloc_engine

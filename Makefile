@@ -18,7 +18,7 @@ directories:
 	@mkdir -p $(BIN_DIR) $(PLOTS_DIR)
 
 # ==============================================================================
-# --- Stage 0 Targets ---
+# --- Stage 0 Targets (Explicit flags per binary) ---
 # ==============================================================================
 stage0: directories $(BIN_DIR)/parta_O0 $(BIN_DIR)/parta_O1 $(BIN_DIR)/parta_O2 $(BIN_DIR)/parta_O3 $(BIN_DIR)/partb_O0 $(BIN_DIR)/partb_O2
 
@@ -41,28 +41,27 @@ $(BIN_DIR)/partb_O2: stage0/stage0_partb.c
 	$(CC) $(CFLAGS) -O2 $< -o $@
 
 # ==============================================================================
-# --- Stage A & Indicator Test Targets ---
+# --- Stage A & Indicator Test Targets (Respects $(OPT) and $(CPU)) ---
 # ==============================================================================
-
 test_tradeio: directories $(BIN_DIR)/test_tradeio
 $(BIN_DIR)/test_tradeio: stageA/test_tradeio.c common/trade_io.c
-	$(CC) $(CFLAGS) -O2 $^ -o $@
+	$(CC) $(CFLAGS) $^ -o $@
 
 test_vwap: directories $(BIN_DIR)/test_vwap
 $(BIN_DIR)/test_vwap: stageA/test_vwap.c indicators/vwap.c common/trade_io.c
-	$(CC) $(CFLAGS) -O2 $^ -o $@
+	$(CC) $(CFLAGS) $^ -o $@
 
 test_ohlc: directories $(BIN_DIR)/test_ohlc
 $(BIN_DIR)/test_ohlc: stageA/test_ohlc.c indicators/ohlc.c common/trade_io.c
-	$(CC) $(CFLAGS) -O2 $^ -o $@
+	$(CC) $(CFLAGS) $^ -o $@
 
 test_sma: directories $(BIN_DIR)/test_sma
 $(BIN_DIR)/test_sma: stageA/test_sma.c indicators/sma.c common/trade_io.c
-	$(CC) $(CFLAGS) -O2 $^ -o $@
+	$(CC) $(CFLAGS) $^ -o $@
 
 test_signal: directories $(BIN_DIR)/test_signal
 $(BIN_DIR)/test_signal: stageA/test_signal.c indicators/signal.c indicators/sma.c common/trade_io.c
-	$(CC) $(CFLAGS) -O2 $^ -o $@
+	$(CC) $(CFLAGS) $^ -o $@
 
 stageA: directories $(BIN_DIR)/stageA_engine
 $(BIN_DIR)/stageA_engine: stageA/main_stageA.c \
@@ -71,7 +70,7 @@ $(BIN_DIR)/stageA_engine: stageA/main_stageA.c \
                           indicators/sma.c \
                           indicators/signal.c \
                           common/trade_io.c
-	$(CC) $(CFLAGS) -O2 $^ -o $@
+	$(CC) $(CFLAGS) $^ -o $@
 
 # Stage A Test Runner (TEST20 Correctness Check - Short=3, Long=5)
 test20: directories $(BIN_DIR)/test20_stageA_engine
@@ -81,7 +80,7 @@ $(BIN_DIR)/test20_stageA_engine: stageA/test20_stageA.c \
                           indicators/sma.c \
                           indicators/signal.c \
                           common/trade_io.c
-	$(CC) -Wall -Wextra -Icommon -Iindicators -Istage0 -O2 -DSHORT_N=3 -DLONG_N=5 $^ -o $@
+	$(CC) $(OPT) $(CPU) -Wall -Wextra -Icommon -Iindicators -Istage0 -DSHORT_N=3 -DLONG_N=5 $^ -o $@
 
 # ==============================================================================
 # --- Automated Verification Target ---
@@ -89,12 +88,12 @@ $(BIN_DIR)/test20_stageA_engine: stageA/test20_stageA.c \
 check: test20
 	@echo "Running test20 verification..."
 	./$(BIN_DIR)/test20_stageA_engine > $(PLOTS_DIR)/test20_output.txt
+	diff -u Datasets/Group09/test20_expected.txt $(PLOTS_DIR)/test20_output.txt
 	@echo ">>> TEST20 PASSED SUCCESSFULLY <<<"
 
 # ==============================================================================
 # --- Stage A+ Targets ---
 # ==============================================================================
-
 stageA_plus: directories $(BIN_DIR)/stageA_plus_engine
 $(BIN_DIR)/stageA_plus_engine: stageA+/main_stageA+.c \
                                indicators/vwap.c \
@@ -102,12 +101,11 @@ $(BIN_DIR)/stageA_plus_engine: stageA+/main_stageA+.c \
                                indicators/sma.c \
                                indicators/signal.c \
                                common/fast_reader.c
-	$(CC) $(CFLAGS) -O2 $^ -o $@
+	$(CC) $(CFLAGS) $^ -o $@
 
 # ==============================================================================
 # --- Stage B Targets ---
 # ==============================================================================
-
 stageB: stageB_naive stageB_running stageB_fp stageB_malloc
 
 stageB_naive: directories $(BIN_DIR)/stageB_naive_engine
@@ -117,7 +115,7 @@ $(BIN_DIR)/stageB_naive_engine: stageB/main_stageB.c \
                                indicators/sma.c \
                                indicators/signal.c \
                                common/fast_reader.c
-	$(CC) $(CFLAGS) -O2 $^ -o $@
+	$(CC) $(CFLAGS) $^ -o $@
 
 stageB_running: directories $(BIN_DIR)/stageB_running_engine
 $(BIN_DIR)/stageB_running_engine: stageB/main_stageB_running.c \
@@ -126,7 +124,7 @@ $(BIN_DIR)/stageB_running_engine: stageB/main_stageB_running.c \
                                  indicators/sma.c \
                                  indicators/signal.c \
                                  common/fast_reader.c
-	$(CC) $(CFLAGS) -O2 $^ -o $@
+	$(CC) $(CFLAGS) $^ -o $@
 
 stageB_fp: directories $(BIN_DIR)/stageB_fp_engine
 $(BIN_DIR)/stageB_fp_engine: stageB/main_stageB_fixedpoint.c \
@@ -134,7 +132,7 @@ $(BIN_DIR)/stageB_fp_engine: stageB/main_stageB_fixedpoint.c \
                             indicators/ohlc.c \
                             indicators/signal.c \
                             common/fast_reader.c
-	$(CC) $(CFLAGS) -O2 $^ -o $@
+	$(CC) $(CFLAGS) $^ -o $@
 
 stageB_malloc: directories $(BIN_DIR)/stageB_malloc_engine
 $(BIN_DIR)/stageB_malloc_engine: stageB/main_stageB_malloc.c \
@@ -143,7 +141,7 @@ $(BIN_DIR)/stageB_malloc_engine: stageB/main_stageB_malloc.c \
                                 indicators/sma.c \
                                 indicators/signal.c \
                                 common/fast_reader.c
-	$(CC) $(CFLAGS) -O2 $^ -o $@
+	$(CC) $(CFLAGS) $^ -o $@
 
 run_stageB_naive: stageB_naive
 	./$(BIN_DIR)/stageB_naive_engine
@@ -154,7 +152,6 @@ run_stageB_running: stageB_running
 # ==============================================================================
 # --- Stage C Targets ---
 # ==============================================================================
-
 stageC: directories $(BIN_DIR)/stageC_engine
 $(BIN_DIR)/stageC_engine: stageC/main_stageC.c \
                         indicators/vwap.c \
@@ -162,12 +159,11 @@ $(BIN_DIR)/stageC_engine: stageC/main_stageC.c \
                         indicators/sma.c \
                         indicators/signal.c \
                         common/fast_reader.c
-	$(CC) $(CFLAGS) -O2 $^ -o $@
+	$(CC) $(CFLAGS) $^ -o $@
 
 # ==============================================================================
 # --- Plot Targets (Outputs to plots/ directory with BUY/SELL markers) ---
 # ==============================================================================
-
 plot_stageA: stageA directories
 	@mkdir -p $(PLOTS_DIR)
 	@echo "Running Stage A Engine to write $(PLOTS_DIR)/signals_stageA.dat..."
