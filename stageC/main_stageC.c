@@ -18,6 +18,8 @@
 #define LONG_N 100
 #endif
 
+
+// define a Trade struct
 typedef struct {
     long long ts;
     double price;
@@ -25,14 +27,15 @@ typedef struct {
     int is_buy;
 } Trade;
 
-// Structure to evaluate Rival Bot P&L for a given reaction time limit R (in ns)
+// Structure to evaluate Rival Bot P&L for a 
+// given reaction time limit R (in ns)
 typedef struct {
     double r_ns;
     double total_buy_cost;
     double total_sell_revenue;
     int holding;
-    int bot_wins;
-    int rival_wins;
+    int bot_wins; 
+    int rival_wins; // Used to track our losses to a possible rival
 } RivalBot;
 
 int main(int argc, char *argv[]) {
@@ -111,8 +114,11 @@ int main(int argc, char *argv[]) {
     // Setup Rival Bot Sweep values (0.1us to 100us)
     double r_values_us[] = {0.1, 0.5, 1.0, 2.0, 5.0, 10.0, 20.0, 50.0, 100.0};
     int num_r = sizeof(r_values_us) / sizeof(r_values_us[0]);
+
+    // create 9 bots for each timing
     RivalBot bots[9];
 
+    // set the default properties for each bot
     for (int k = 0; k < num_r; k++) {
         bots[k].r_ns = r_values_us[k] * 1000.0; // convert us to ns
         bots[k].total_buy_cost = 0.0;
@@ -195,15 +201,30 @@ int main(int argc, char *argv[]) {
                    buy_signals, i + 1, p, (unsigned long long)trade_latency, (long long)lag_ms);
 
             for (int k = 0; k < num_r; k++) {
+                // check if the current bot is not holding any BTC
+                // .holder=0 
                 if (!bots[k].holding) {
+
+                    // Reaction Time is shorter/within R
+                    // Fast enough: win the race and fill at current trade price p
                     if ((double)trade_latency <= bots[k].r_ns) {
                         bots[k].total_buy_cost += p;
                         bots[k].bot_wins++;
-                    } else {
+                    } 
+
+                    // Too slow: lose the race and fill at the next trade's price
+                    else {
                         double fill_price = (i + 1 < trade_count) ? trades[i + 1].price : p;
                         bots[k].total_buy_cost += fill_price;
                         bots[k].rival_wins++;
                     }
+
+                    /* 
+                    Indicate that we have btc
+                    and we cant buy another unless we sell.
+
+                    Rival bot get the next BUY trade.
+                    */ 
                     bots[k].holding = 1;
                 }
             }
@@ -216,11 +237,21 @@ int main(int argc, char *argv[]) {
                    sell_signals, i + 1, p, (unsigned long long)trade_latency, (long long)lag_ms);
 
             for (int k = 0; k < num_r; k++) {
+                // check if the current bot is holding any BTC
+                // .holder=1
                 if (bots[k].holding) {
+
+                    // Reaction Time is shorter/within R
+                    // Fast enough: win the race and SELL at current trade price p
+                    
                     if ((double)trade_latency <= bots[k].r_ns) {
                         bots[k].total_sell_revenue += p;
-                        bots[k].bot_wins++;
-                    } else {
+                        bots[k].bot_wins++;                
+                    } 
+    
+                    // Too slow: lose the race and SELL at the next trade's price
+
+                    else {
                         double fill_price = (i + 1 < trade_count) ? trades[i + 1].price : p;
                         bots[k].total_sell_revenue += fill_price;
                         bots[k].rival_wins++;
