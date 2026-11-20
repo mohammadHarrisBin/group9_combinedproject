@@ -37,9 +37,14 @@ $(BIN_DIR)/parta_O3: stage0/stage0_parta.c
 $(BIN_DIR)/partb_O0: stage0/stage0_partb.c
 	$(CC) $(CFLAGS) -O0 $< -o $@
 
+$(BIN_DIR)/partb_O1: stage0/stage0_partb.c
+	$(CC) $(CFLAGS) -O1 $< -o $@
+
 $(BIN_DIR)/partb_O2: stage0/stage0_partb.c
 	$(CC) $(CFLAGS) -O2 $< -o $@
 
+$(BIN_DIR)/partb_O3: stage0/stage0_partb.c
+	$(CC) $(CFLAGS) -O3 $< -o $@
 # ==============================================================================
 # --- Stage A & Indicator Test Targets (Respects $(OPT) and $(CPU)) ---
 # ==============================================================================
