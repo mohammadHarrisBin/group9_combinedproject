@@ -20,7 +20,7 @@ directories:
 # ==============================================================================
 # --- Stage 0 Targets (Explicit flags per binary) ---
 # ==============================================================================
-stage0: directories $(BIN_DIR)/parta_O0 $(BIN_DIR)/parta_O1 $(BIN_DIR)/parta_O2 $(BIN_DIR)/parta_O3 $(BIN_DIR)/partb_O0 $(BIN_DIR)/partb_O2
+stage0: directories $(BIN_DIR)/parta_O0 $(BIN_DIR)/parta_O1 $(BIN_DIR)/parta_O2 $(BIN_DIR)/parta_O3 $(BIN_DIR)/partb_O0 $(BIN_DIR)/partb_O1 $(BIN_DIR)/partb_O2 $(BIN_DIR)/partb_O3
 
 $(BIN_DIR)/parta_O0: stage0/stage0_parta.c
 	$(CC) $(CFLAGS) -O0 $< -o $@
