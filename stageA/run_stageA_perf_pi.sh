@@ -56,7 +56,7 @@ for level in 0 2; do
             rm -f -- "$work_dir/status"
             # Keep benchmark progress on the terminal while capturing perf diagnostics.
             # The status file tells us whether perf launched the benchmark.
-            if ! perf stat -x ';' -o "$work_dir/counters" -e cycles,instructions,cache-misses -- \
+            if ! perf stat -x ';' -o "$work_dir/counters" -e cycles:u,instructions:u,cache-misses:u -- \
                 sh -c 'printf "started\n" > "$1"; result=0; "$2" --round "$3" 2>&3 3>&- || result=$?; printf "%s\n" "$result" > "$1"; exit "$result"' \
                 perf-benchmark "$work_dir/status" "$benchmark" "$round" \
                 3>&2 > "$work_dir/stdout" 2> "$work_dir/errors"; then
@@ -98,7 +98,8 @@ for level in 0 2; do
         fi
 
         awk -F ';' -v round="$round" -v elapsed="$elapsed" -v runs="$runs" '
-            $3 ~ /^(cycles|instructions|cache-misses)$/ && $1 ~ /^[0-9]+(\.[0-9]+)?$/ {
+            $3 ~ /^(cycles|instructions|cache-misses)(:u)?$/ && $1 ~ /^[0-9]+(\.[0-9]+)?$/ {
+                sub(/:u$/, "", $3)
                 count[$3] = $1
             }
             function average(event) {
@@ -130,7 +131,7 @@ awk -F '\t' -v runs="$runs" '
         values[5] = "Cache misses"
         if (FNR == 1) {
             print "Elapsed time and event counts are averages per pass over " runs " passes per round."
-            print "IPC is total retired instructions divided by total cycles. Counts cover the profiled command."
+            print "IPC is total retired instructions divided by total cycles. Counts cover user-space execution of the profiled command."
             print ""
             print "| Round | Metric | -O0 | -O2 |"
             print "| ---: | :--- | ---: | ---: |"
