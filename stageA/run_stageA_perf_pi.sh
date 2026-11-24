@@ -1,5 +1,5 @@
 #!/bin/sh
-levels='0 2'
+levels='0 1 2 3'
 
 set -eu
 

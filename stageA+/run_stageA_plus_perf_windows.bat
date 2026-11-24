@@ -1,6 +1,6 @@
 @echo off
 setlocal EnableExtensions DisableDelayedExpansion
-set "levels=0 2"
+set "levels=0 1 2 3"
 
 
 for %%P in ("%~dp0.") do set "stage=%%~fP"
