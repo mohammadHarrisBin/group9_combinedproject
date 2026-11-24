@@ -21,11 +21,13 @@ set "tempReport=!work!\report.md"
 
 rem Stage 0 emits one metadata row followed by the timing rows.
 for %%O in (0 1 2 3) do (
+    echo [Stage 0 -O%%O] Compiling benchmark.
     gcc.exe -std=c17 -O%%O -Wall -Wextra -Werror -I "!common!" "!stage!\stage0_all_tsv.c" -o "!benchmark!"
     if not "!errorlevel!"=="0" (
         >&2 echo GCC failed at -O%%O ^(exit code !errorlevel!^).
         goto cleanup
     )
+    echo [Stage 0 -O%%O] Running the benchmark.
     "!benchmark!" > "!work!\summary.tsv"
     if not "!errorlevel!"=="0" (
         >&2 echo The benchmark failed at -O%%O ^(exit code !errorlevel!^).
@@ -36,8 +38,10 @@ for %%O in (0 1 2 3) do (
         >&2 echo Invalid or inconsistent benchmark output at -O%%O.
         goto cleanup
     )
+    echo [Stage 0 -O%%O] Measurements complete.
 )
 
+echo [Stage 0] Saving the Markdown report.
 >"!tempReport!" (
     echo Measurements per method in each round: !runCount!.
     echo Each cell shows the iterative / recursive averages.
