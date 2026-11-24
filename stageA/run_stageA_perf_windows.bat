@@ -1,5 +1,8 @@
 @echo off
 setlocal EnableExtensions DisableDelayedExpansion
+set "levels=0 1 2 3"
+
+
 for %%P in ("%~dp0.") do set "stage=%%~fP"
 for %%P in ("%~dp0..") do set "root=%%~fP"
 setlocal EnableDelayedExpansion
@@ -21,7 +24,7 @@ if errorlevel 1 goto done
 set "benchmark=!work!\benchmark.exe"
 set "tempReport=!work!\report.md"
 
-for %%O in (0 2) do (
+for %%O in (!levels!) do (
     echo [Stage A -O%%O] Compiling benchmark.
     gcc.exe -std=c17 -O%%O -Wall -Wextra -Werror -DBENCHMARK_PROGRESS -I "!common!" -I "!indicators!" ^
         "!stage!\main_stageA_perf.c" "!common!\trade_io.c" "!indicators!\vwap.c" "!indicators!\ohlc.c" "!indicators!\sma.c" "!indicators!\signal.c" -o "!benchmark!"
@@ -49,9 +52,21 @@ echo [Stage A] Saving the Markdown report.
 >"!tempReport!" (
     echo Each cell shows !metricNames! averaged over !runCount! runs.
     echo(
-    echo ^| Round ^| -O0 ^| -O2 ^|
-    echo ^| ---: ^| ---: ^| ---: ^|
-    for /l %%R in (1,1,!roundCount!) do echo ^| %%R ^| !timing[0,%%R]! ^| !timing[2,%%R]! ^|
+    set "header=| Round |"
+    set "separator=| ---: |"
+    for %%O in (!levels!) do (
+        set "header=!header! -O%%O |"
+        set "separator=!separator! ---: |"
+    )
+    echo(!header!
+    echo(!separator!
+    for /l %%R in (1,1,!roundCount!) do (
+        set "row=| %%R |"
+        for %%O in (!levels!) do (
+            set "row=!row! !timing[%%O,%%R]! |"
+        )
+        echo(!row!
+    )
 ) || goto save_failed
 
 if exist "!report!\" goto save_failed

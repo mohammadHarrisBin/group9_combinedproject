@@ -1,4 +1,6 @@
 #!/bin/sh
+levels='0 2'
+
 set -eu
 
 export LC_ALL=C
@@ -7,7 +9,7 @@ project_dir=$(dirname -- "$stage_dir")
 report="$stage_dir/stageA_perf_results_pi.md"
 
 work_dir=$(mktemp -d "$stage_dir/.stageA-perf.XXXXXX")
-trap 'rm -f -- "$work_dir/benchmark.out" "$work_dir/O0.txt" "$work_dir/O2.txt" "$work_dir/report.md" "$work_dir/stdout" "$work_dir/status" "$work_dir/counters" "$work_dir/errors" "$work_dir/notes"; rmdir -- "$work_dir"' EXIT
+trap 'rm -f -- "$work_dir/benchmark.out" "$work_dir/O0.txt" "$work_dir/O1.txt" "$work_dir/O2.txt" "$work_dir/O3.txt" "$work_dir/report.md" "$work_dir/stdout" "$work_dir/status" "$work_dir/counters" "$work_dir/errors" "$work_dir/notes"; rmdir -- "$work_dir"' EXIT
 trap 'exit 1' HUP INT TERM
 
 cd "$project_dir"
@@ -20,7 +22,7 @@ else
     printf '[Stage A] Linux perf is unavailable. Running with elapsed timing.\n' >&2
 fi
 
-for level in 0 2; do
+for level in $levels; do
     printf '[Stage A -O%s] Compiling benchmark.\n' "$level" >&2
     gcc -std=c17 "-O$level" -Wall -Wextra -Werror -DBENCHMARK_PROGRESS -Icommon -Iindicators \
         "$stage_dir/main_stageA_perf.c" common/trade_io.c \
@@ -41,7 +43,7 @@ for level in 0 2; do
     fi
     rounds=${counts% *}
     runs=${counts#* }
-    if [ "$level" = 0 ]; then
+    if [ -z "${expected_config+x}" ]; then
         expected_config=$config
     elif [ "$config" != "$expected_config" ]; then
         printf '%s\n' 'Inconsistent benchmark configuration across optimization levels.' >&2
@@ -120,34 +122,53 @@ for level in 0 2; do
 done
 
 printf '[Stage A] Saving the Markdown report.\n' >&2
-awk -F '\t' -v runs="$runs" '
-    FILENAME == ARGV[1] { o0[$1] = $0; next }
+set --
+for level in $levels; do
+    set -- "$@" "$work_dir/O$level.txt"
+done
+
+awk -F '\t' -v levels="$levels" -v rounds="$rounds" -v runs="$runs" '
+    BEGIN {
+        columns = split(levels, flags, " ")
+        metrics[1] = "Elapsed time"
+        metrics[2] = "CPU cycles"
+        metrics[3] = "Retired instructions"
+        metrics[4] = "IPC"
+        metrics[5] = "Cache misses"
+
+        print "Elapsed time and event counts are averages per pass over " runs " passes per round."
+        print "IPC is total retired instructions divided by total cycles. Counts cover user-space execution of the profiled command."
+        print ""
+        printf "| Round | Metric |"
+        for (i = 1; i <= columns; i++) printf " -O%s |", flags[i]
+        printf "\n| ---: | :--- |"
+        for (i = 1; i <= columns; i++) printf " ---: |"
+        printf "\n"
+    }
+    FNR == 1 { column++ }
     {
-        split(o0[$1], first, "\t")
-        values[1] = "Elapsed time"
-        values[2] = "CPU cycles"
-        values[3] = "Retired instructions"
-        values[4] = "IPC"
-        values[5] = "Cache misses"
-        if (FNR == 1) {
-            print "Elapsed time and event counts are averages per pass over " runs " passes per round."
-            print "IPC is total retired instructions divided by total cycles. Counts cover user-space execution of the profiled command."
-            print ""
-            print "| Round | Metric | -O0 | -O2 |"
-            print "| ---: | :--- | ---: | ---: |"
-        }
-        for (i = 1; i <= 5; i++) {
-            printf "| %d | %s | %s | %s |\n", $1, values[i], first[i+1], $(i+1)
-            if (first[i+1] == "N/A" || $(i+1) == "N/A") missing = 1
+        for (metric = 1; metric <= 5; metric++) {
+            timing[column, $1, metric] = $(metric + 1)
         }
     }
     END {
+        for (round = 1; round <= rounds; round++) {
+            for (metric = 1; metric <= 5; metric++) {
+                printf "| %d | %s |", round, metrics[metric]
+                for (i = 1; i <= columns; i++) {
+                    value = timing[i, round, metric]
+                    printf " %s |", value
+                    if (value == "N/A") missing = 1
+                }
+                printf "\n"
+            }
+        }
         if (missing) {
             print ""
             print "N/A indicates an unavailable or uncounted event."
         }
     }
-' "$work_dir/O0.txt" "$work_dir/O2.txt" > "$work_dir/report.md"
+' "$@" > "$work_dir/report.md"
 
 if [ -s "$work_dir/notes" ]; then
     printf '\nCounter availability\n\n' >> "$work_dir/report.md"

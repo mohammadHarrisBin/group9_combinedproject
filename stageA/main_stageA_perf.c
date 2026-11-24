@@ -17,7 +17,8 @@
 #define LONG_N 100
 #endif
 
-enum { ROUNDS = 5, RUNS_PER_ROUND = 3 };
+#define DATASET STRESS
+enum { ROUNDS = 5, RUNS_PER_ROUND = 5 };
 
 typedef struct {
     uint64_t elapsed_ns;
@@ -28,7 +29,7 @@ static volatile uint64_t buy_signals_observed;
 static volatile uint64_t sell_signals_observed;
 
 static int measure_trial(TrialMetrics *metrics) {
-    if (!open_data(STRESS)) {
+    if (!open_data(DATASET)) {
         fprintf(stderr, "Error: Could not open the STRESS dataset.\n");
         return 0;
     }
