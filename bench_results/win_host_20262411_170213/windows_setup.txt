@@ -1,5 +1,0 @@
-=== WINDOWS HOST SYSTEM INFO === 
-OS Name:                       Microsoft Windows 11 Education
-OS Version:                    10.0.26200 N/A Build 26200
-System Model:                  Predator PH315-52
-Processor(s):                  1 Processor(s) Installed.

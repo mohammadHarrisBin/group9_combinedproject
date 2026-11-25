@@ -1,3 +1,0 @@
-Running Stage A Engine to write plots/signals_stageA.dat...
-./bin/stageA_engine
-make: *** [Makefile:182: plot_stageA] Interrupt
