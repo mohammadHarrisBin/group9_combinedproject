@@ -22,7 +22,9 @@ void sma_update(SMAWindow *sma, double price) {
     }
 
     sma->window[sma->head] = price;
-    sma->head = (sma->head + 1) % sma->capacity;
+    sma->head++;
+    if (sma->head == sma->capacity) { sma->head = 0; } // Removes 2 integer divisions. Modulus is overkill
+    // sma->head = (sma->head + 1) % sma->capacity;
 
     sma->running_sum += price;
 }

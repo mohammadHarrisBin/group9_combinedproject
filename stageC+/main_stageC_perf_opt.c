@@ -16,7 +16,7 @@
 
 // Enable with -DSTAGEC_SCALED_SIGNAL=1 to compare the running sums directly.
 #ifndef STAGEC_SCALED_SIGNAL
-#define STAGEC_SCALED_SIGNAL 0
+#define STAGEC_SCALED_SIGNAL 1
 #endif
 
 

@@ -3,6 +3,11 @@ setlocal EnableExtensions DisableDelayedExpansion
 set "speeds=1000"
 set "optimizations=-O2 -O3"
 set "verbose=0"
+set "profile=0"
+if /i "%~1"=="--profile" (
+    set "profile=1"
+    shift /1
+)
 for %%P in ("%~dp0.") do set "stage=%%~fP"
 for %%P in ("%~dp0..") do set "root=%%~fP"
 set "rounds=%~1"
@@ -38,6 +43,11 @@ mkdir "!work!"
 if errorlevel 1 goto done
 set "benchmark=!work!\benchmark.exe"
 set "tempReport=!work!\report.md"
+set "sweep=!root!\plots\rival_sweep.dat"
+set "priorSweep=!work!\prior-sweep.dat"
+if "!profile!"=="0" if not exist "!root!\plots\" (
+    mkdir "!root!\plots" || goto cleanup
+)
 
 type nul > "!work!\replay.tsv" || goto save_failed
 type nul > "!work!\rivals.tsv" || goto save_failed
@@ -56,13 +66,19 @@ if not defined optimization (
     echo(
     echo Dataset `Datasets/stress_full.csv`. SMA windows 15/100. GCC flags `-std=c17 -Wall -Wextra -Werror`. Optimization levels `!optimizations!`.
     echo(
-    echo Processing latency measures the per-trade SMA and signal calculations. Replay elapsed time covers the replay loop, including pacing waits and terminal and LED work. Timing excludes CSV loading, shutdown and report writing.
-    echo(
-    echo ## Replay
-    echo(
-    echo ^| Optimization ^| Round ^| Speed ^| Trades ^| BUY ^| SELL ^| Avg. processing latency ^(ns^) ^| Worst processing latency ^(ns^) ^| Replay elapsed ^(ns^) ^|
-    echo ^| --- ^| ---: ^| ---: ^| ---: ^| ---: ^| ---: ^| ---: ^| ---: ^| ---: ^|
-    type "!work!\replay.tsv"
+    if "!profile!"=="1" (
+        echo Profiling mode redirects benchmark stdout to a file.
+        echo(
+        echo Processing latency measures the per-trade SMA and signal calculations. Replay elapsed time covers the replay loop, including pacing waits and signal and LED output. Timing excludes CSV loading, shutdown and report writing.
+        echo(
+        echo ## Replay
+        echo(
+        echo ^| Optimization ^| Round ^| Speed ^| Trades ^| BUY ^| SELL ^| Avg. processing latency ^(ns^) ^| Worst processing latency ^(ns^) ^| Replay elapsed ^(ns^) ^|
+        echo ^| --- ^| ---: ^| ---: ^| ---: ^| ---: ^| ---: ^| ---: ^| ---: ^| ---: ^|
+        type "!work!\replay.tsv"
+    ) else (
+        echo Direct mode uses console output and reads the rival sweep after each run.
+    )
     echo(
     echo ## Rival bot
     echo(
@@ -82,6 +98,14 @@ goto cleanup
 >&2 echo Could not save "!report!".
 
 :cleanup
+if exist "!priorSweep!" (
+    if exist "!sweep!" (
+        del /q "!priorSweep!"
+    ) else (
+        move /y "!priorSweep!" "!sweep!" >nul
+        if errorlevel 1 >&2 echo Could not restore the previous sweep from "!priorSweep!".
+    )
+)
 del /q "!work!\*.exe" "!work!\*.tsv" "!work!\report.md" 2>nul
 rd "!work!"
 if errorlevel 1 set "status=1"
@@ -91,7 +115,7 @@ popd
 exit /b !status!
 
 :invalid_rounds
->&2 echo Usage: %~nx0 [Rounds] or %~nx0 -Rounds N
+>&2 echo Usage: %~nx0 [--profile] [Rounds] or %~nx0 [--profile] -Rounds N
 >&2 echo Rounds must be a positive integer.
 exit /b 1
 
@@ -118,6 +142,8 @@ exit /b 0
 set "round=1"
 :run_round
 echo [Stage C] Running !optimization! at %~1x, round !round!.
+for %%T in (0.1 0.5 1.0 2.0 5.0 10.0 20.0 50.0 100.0) do set "rival[%%T]="
+if "!profile!"=="0" goto direct_round
 "!benchmark!" %~1 > "!work!\output.tsv"
 set "benchmarkStatus=!errorlevel!"
 if not "!benchmarkStatus!"=="0" (
@@ -130,7 +156,6 @@ if "!verbose!"=="1" (
 )
 
 set "replay="
-for %%T in (0.1 0.5 1.0 2.0 5.0 10.0 20.0 50.0 100.0) do set "rival[%%T]="
 for /f "delims=" %%L in ('findstr /b /l /c:"stageC_perf	" /c:"stageC_rival	" "!work!\output.tsv"') do (
     for /f "tokens=1-8 delims=	" %%A in ("%%L") do (
         if "%%A"=="stageC_perf" (
@@ -147,23 +172,38 @@ for /f "delims=" %%L in ('findstr /b /l /c:"stageC_perf	" /c:"stageC_rival	" "!w
             set "replay=| !optimization! | !round! | %%B | %%C | %%D | %%E | %%F | %%G | %%H |"
         ) else (
             if not "%%L"=="%%A	%%B	%%C	%%D	%%E" goto bad_rows
-            if "%%E"=="" goto bad_rows
-            set "knownThreshold="
-            for %%T in (0.1 0.5 1.0 2.0 5.0 10.0 20.0 50.0 100.0) do if "%%B"=="%%T" set "knownThreshold=1"
-            if not defined knownThreshold goto bad_rows
-            if defined rival[%%B] goto bad_rows
-            set "decimal=%%C"
-            if "!decimal:~0,1!"=="-" set "decimal=!decimal:~1!"
-            set "digits=%%D%%E"
-            call :validate_number_fields
+            call :read_rival %~1 "%%B" "%%C" "%%D" "%%E"
             if errorlevel 1 goto bad_rows
-            set "rival[%%B]=| !optimization! | !round! | %~1 | %%B | %%C | %%D | %%E |"
         )
     )
 )
 if not defined replay goto bad_rows
-for %%T in (0.1 0.5 1.0 2.0 5.0 10.0 20.0 50.0 100.0) do if not defined rival[%%T] goto bad_rows
 >>"!work!\replay.tsv" echo(!replay!|| exit /b 1
+goto write_rivals
+
+:direct_round
+rem Set aside the previous sweep so it cannot be read as this round's output.
+if exist "!sweep!" (
+    move /y "!sweep!" "!priorSweep!" >nul || exit /b 1
+)
+"!benchmark!" %~1
+set "benchmarkStatus=!errorlevel!"
+if not "!benchmarkStatus!"=="0" (
+    >&2 echo Stage C !optimization! failed at %~1x, round !round! ^(exit code !benchmarkStatus!^).
+    exit /b 1
+)
+if not exist "!sweep!" goto bad_rows
+if exist "!priorSweep!" (
+    del /q "!priorSweep!" || exit /b 1
+)
+for /f "usebackq tokens=1-5 eol=|" %%A in ("!sweep!") do (
+    if not "%%E"=="" goto bad_rows
+    call :read_rival %~1 "%%A" "%%B" "%%C" "%%D"
+    if errorlevel 1 goto bad_rows
+)
+
+:write_rivals
+for %%T in (0.1 0.5 1.0 2.0 5.0 10.0 20.0 50.0 100.0) do if not defined rival[%%T] goto bad_rows
 for %%T in (0.1 0.5 1.0 2.0 5.0 10.0 20.0 50.0 100.0) do (
     >>"!work!\rivals.tsv" echo(!rival[%%T]!|| exit /b 1
 )
@@ -172,9 +212,25 @@ set /a round+=1
 goto run_round
 
 :bad_rows
-type "!work!\output.tsv" >&2
+if "!profile!"=="1" type "!work!\output.tsv" >&2
+if "!profile!"=="0" if exist "!sweep!" type "!sweep!" >&2
 >&2 echo Invalid or incomplete Stage C !optimization! output at %~1x, round !round!.
 exit /b 1
+
+:read_rival
+set "knownThreshold="
+for %%T in (0.1 0.5 1.0 2.0 5.0 10.0 20.0 50.0 100.0) do if "%~2"=="%%T" set "knownThreshold=1"
+if not defined knownThreshold exit /b 1
+if defined rival[%~2] exit /b 1
+if "%~4"=="" exit /b 1
+if "%~5"=="" exit /b 1
+set "decimal=%~3"
+if "!decimal:~0,1!"=="-" set "decimal=!decimal:~1!"
+set "digits=%~4%~5"
+call :validate_number_fields
+if errorlevel 1 exit /b 1
+set "rival[%~2]=| !optimization! | !round! | %~1 | %~2 | %~3 | %~4 | %~5 |"
+exit /b 0
 
 :validate_number_fields
 if "!decimal:~3,1!"=="" exit /b 1

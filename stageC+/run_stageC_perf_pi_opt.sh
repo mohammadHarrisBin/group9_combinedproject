@@ -1,6 +1,6 @@
 #!/bin/sh
 set -eu
-speeds="100 500 1000"
+speeds="1000"
 optimizations="-O2 -O3"
 verbose=0
 counters=1

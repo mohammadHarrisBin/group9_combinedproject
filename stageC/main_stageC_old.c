@@ -4,8 +4,8 @@
 #include "fast_reader.h"
 #include "vwap.h"
 #include "ohlc.h"
-#include "sma.h"
-#include "signal.h"
+#include "sma_old.h"
+#include "signal_old.h"
 #include "timing.h"
 #include "led.h"
 

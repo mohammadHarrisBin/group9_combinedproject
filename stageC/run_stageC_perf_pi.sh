@@ -1,12 +1,17 @@
 #!/bin/sh
 set -eu
-speeds="100 500 1000"
+speeds="1000"
 optimizations="-O2 -O3"
 verbose=0
 counters=1
+profile=0
+if [ "${1-}" = --profile ]; then
+    profile=1
+    shift
+fi
 
 if [ "$#" -gt 1 ]; then
-    printf 'Usage: %s [rounds]\n' "$0" >&2
+    printf 'Usage: %s [--profile] [rounds]\n' "$0" >&2
     exit 1
 fi
 case "${1-1}" in
@@ -20,8 +25,10 @@ case "$optimizations" in
     *) printf 'Select -O2, -O3, or both in the optimizations list.\n' >&2; exit 1 ;;
 esac
 
-export LC_ALL=C
-if ! rounds=$(awk -v input="${1-1}" 'BEGIN {
+if [ "$profile" -eq 1 ]; then
+    export LC_ALL=C
+fi
+if ! rounds=$(LC_ALL=C awk -v input="${1-1}" 'BEGIN {
     if (input < 1 || input > 2147483647) exit 1
     printf "%.0f\n", input
 }'); then
@@ -34,19 +41,37 @@ project_dir=$(dirname -- "$stage_dir")
 report="$stage_dir/stageC_perf_results_pi.md"
 work_dir=$(mktemp -d "$stage_dir/.stageC-perf.XXXXXX")
 benchmark="$work_dir/benchmark.out"
-trap 'rm -f -- "$benchmark" "$work_dir/report.md" "$work_dir/rivals" "$work_dir/stdout" "$work_dir/status" "$work_dir/counters" "$work_dir/errors"; rmdir -- "$work_dir"' EXIT
+sweep="$project_dir/plots/rival_sweep.dat"
+prior_sweep="$work_dir/prior-sweep.dat"
+cleanup() {
+    if [ -e "$prior_sweep" ] && [ ! -e "$sweep" ]; then
+        if ! mv -- "$prior_sweep" "$sweep"; then
+            printf 'Could not restore the previous sweep from %s.\n' "$prior_sweep" >&2
+            return 1
+        fi
+    fi
+    rm -f -- "$benchmark" "$work_dir/report.md" "$work_dir/rivals" "$work_dir/stdout" \
+        "$work_dir/status" "$work_dir/counters" "$work_dir/errors" "$prior_sweep"
+    rmdir -- "$work_dir"
+}
+trap cleanup EXIT
 trap 'exit 1' HUP INT TERM
 
 cd "$project_dir"
 
 have_perf=0
-counter_note='Hardware counters are disabled for this run.'
-if [ "$counters" -eq 1 ]; then
-    counter_note='Linux perf is unavailable on this host.'
-    if command -v perf >/dev/null 2>&1; then
-        have_perf=1
-        counter_note=''
+counter_note=''
+if [ "$profile" -eq 1 ]; then
+    counter_note='Hardware counters are disabled for this run.'
+    if [ "$counters" -eq 1 ]; then
+        counter_note='Linux perf is unavailable on this host.'
+        if command -v perf >/dev/null 2>&1; then
+            have_perf=1
+            counter_note=''
+        fi
     fi
+else
+    mkdir -p -- plots
 fi
 
 cat > "$work_dir/report.md" <<'EOF'
@@ -55,9 +80,12 @@ cat > "$work_dir/report.md" <<'EOF'
 EOF
 printf 'Dataset `Datasets/stress_full.csv`. SMA windows 15/100. GCC flags `%s`. Optimization levels `%s`.\n' \
     "-std=c17 -mcpu=cortex-a76 -Wall -Wextra -Werror -D_POSIX_C_SOURCE=200809L" "$optimizations" >> "$work_dir/report.md"
-cat >> "$work_dir/report.md" <<'EOF'
+if [ "$profile" -eq 1 ]; then
+    cat >> "$work_dir/report.md" <<'EOF'
 
-Processing latency measures the per-trade SMA and signal calculations. Replay elapsed time covers the replay loop, including pacing waits and terminal and LED work. Timing excludes CSV loading, shutdown and report writing.
+Profiling mode redirects benchmark stdout to a file.
+
+Processing latency measures the per-trade SMA and signal calculations. Replay elapsed time covers the replay loop, including pacing waits and signal and LED output. Timing excludes CSV loading, shutdown and report writing.
 
 `perf stat` measures the whole user-space command, including CSV loading. IPC is instructions divided by cycles.
 
@@ -66,6 +94,9 @@ Processing latency measures the per-trade SMA and signal calculations. Replay el
 | Optimization | Round | Speed | Trades | BUY | SELL | Avg. processing latency (ns) | Worst processing latency (ns) | Replay elapsed (ns) | Cycles | Instructions | IPC | Cache misses |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
 EOF
+else
+    printf '\nDirect mode uses console output and reads the rival sweep after each run.\n' >> "$work_dir/report.md"
+fi
 cat > "$work_dir/rivals" <<'EOF'
 
 ## Rival bot
@@ -90,7 +121,14 @@ for optimization in $optimizations; do
             printf '[Stage C] Running %s at %sx, round %s.\n' "$optimization" "$speed" "$round" >&2
             : > "$work_dir/counters"
             result=0
-            if [ "$have_perf" -eq 1 ]; then
+            if [ "$profile" -eq 0 ]; then
+                # Set aside the previous sweep so it cannot be read as this round's output.
+                if [ -e "$sweep" ]; then
+                    mv -- "$sweep" "$prior_sweep"
+                fi
+                "$benchmark" "$speed" || result=$?
+                output="$sweep"
+            elif [ "$have_perf" -eq 1 ]; then
                 rm -f -- "$work_dir/status"
                 # Use the benchmark status when perf successfully launched its wrapper.
                 if ! perf stat -x ';' -o "$work_dir/counters" -e cycles:u,instructions:u,cache-misses:u -- \
@@ -108,22 +146,38 @@ for optimization in $optimizations; do
                     : > "$work_dir/counters"
                 fi
             fi
-            if [ "$have_perf" -eq 0 ]; then
-                "$benchmark" "$speed" > "$work_dir/stdout" || result=$?
+            if [ "$profile" -eq 1 ]; then
+                output="$work_dir/stdout"
+                if [ "$have_perf" -eq 0 ]; then
+                    "$benchmark" "$speed" > "$output" || result=$?
+                fi
             fi
             if [ "$result" != 0 ]; then
-                cat "$work_dir/stdout" >&2
+                if [ "$profile" -eq 1 ]; then
+                    cat "$output" >&2
+                fi
                 printf 'Stage C %s failed at %sx, round %s (status %s).\n' "$optimization" "$speed" "$round" "$result" >&2
                 exit 1
             fi
 
-            if ! awk -F '\t' -v optimization="$optimization" -v speed="$speed" -v round="$round" -v verbose="$verbose" \
+            if ! LC_ALL=C awk -F '\t' -v optimization="$optimization" -v speed="$speed" -v round="$round" \
+                -v verbose="$verbose" -v profile="$profile" \
                 -v report="$work_dir/report.md" -v rivals="$work_dir/rivals" '
                 BEGIN {
                     expected = split("0.1 0.5 1.0 2.0 5.0 10.0 20.0 50.0 100.0", thresholds, " ")
                     for (i = 1; i <= expected; i++) allowed[thresholds[i]] = 1
                 }
                 function counter(event) { return (event in count) ? count[event] : "N/A" }
+                function record_rival(threshold, pnl, wins, losses) {
+                    if (!(threshold in allowed) || (threshold in rival_rows) ||
+                        pnl !~ /^-?[0-9]+\.[0-9][0-9]$/ || wins !~ /^[0-9]+$/ || losses !~ /^[0-9]+$/) {
+                        invalid = 1
+                        return
+                    }
+                    rival_count++
+                    rival_rows[threshold] = sprintf("| %s | %s | %s | %s | %s | %s | %s |",
+                        optimization, round, speed, threshold, pnl, wins, losses)
+                }
                 FILENAME == ARGV[1] {
                     split($0, fields, ";")
                     if (fields[3] ~ /^(cycles|instructions|cache-misses)(:u)?$/ &&
@@ -134,6 +188,11 @@ for optimization in $optimizations; do
                     next
                 }
                 { sub(/\r$/, "", $0) }
+                !profile {
+                    if (split($0, row, /[[:space:]]+/) != 4) invalid = 1
+                    else record_rival(row[1], row[2], row[3], row[4])
+                    next
+                }
                 /^stageC_perf\t/ {
                     if (++replay_count != 1 || NF != 8 || ("s" $2) != ("s" speed) ||
                         $3 !~ /^[1-9][0-9]*$/ || $4 !~ /^[0-9]+$/ || $5 !~ /^[0-9]+$/ ||
@@ -146,33 +205,31 @@ for optimization in $optimizations; do
                     next
                 }
                 /^stageC_rival\t/ {
-                    if (NF != 5 || !($2 in allowed) || ($2 in rival_rows) ||
-                        $3 !~ /^-?[0-9]+\.[0-9][0-9]$/ || $4 !~ /^[0-9]+$/ || $5 !~ /^[0-9]+$/) {
-                        invalid = 1
-                        next
-                    }
-                    rival_count++
-                    rival_rows[$2] = sprintf("| %s | %s | %s | %s | %s | %s | %s |", optimization, round, speed, $2, $3, $4, $5)
+                    if (NF != 5) invalid = 1
+                    else record_rival($2, $3, $4, $5)
                     next
                 }
                 verbose { print }
                 END {
-                    if (invalid || replay_count != 1 || rival_count != expected) exit 1
-                    ipc = "N/A"
-                    if (("cycles" in count) && count["cycles"] > 0 && ("instructions" in count)) {
-                        ipc = sprintf("%.3f", count["instructions"] / count["cycles"])
+                    if (invalid || rival_count != expected || (profile && replay_count != 1)) exit 1
+                    if (profile) {
+                        ipc = "N/A"
+                        if (("cycles" in count) && count["cycles"] > 0 && ("instructions" in count)) {
+                            ipc = sprintf("%.3f", count["instructions"] / count["cycles"])
+                        }
+                        printf "%s %s | %s | %s | %s |\n", replay_row,
+                            counter("cycles"), counter("instructions"), ipc, counter("cache-misses") >> report
                     }
-                    printf "%s %s | %s | %s | %s |\n", replay_row,
-                        counter("cycles"), counter("instructions"), ipc, counter("cache-misses") >> report
                     for (i = 1; i <= expected; i++) print rival_rows[thresholds[i]] >> rivals
                 }
-            ' "$work_dir/counters" "$work_dir/stdout"; then
-                if [ "$verbose" -eq 0 ]; then
-                    cat "$work_dir/stdout" >&2
+            ' "$work_dir/counters" "$output"; then
+                if [ -f "$output" ] && { [ "$profile" -eq 0 ] || [ "$verbose" -eq 0 ]; }; then
+                    cat "$output" >&2
                 fi
                 printf 'Invalid benchmark output for %s at %sx, round %s.\n' "$optimization" "$speed" "$round" >&2
                 exit 1
             fi
+            rm -f -- "$prior_sweep"
             round=$((round + 1))
         done
     done
