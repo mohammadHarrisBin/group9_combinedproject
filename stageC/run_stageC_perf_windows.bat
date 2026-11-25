@@ -1,5 +1,8 @@
 @echo off
 setlocal EnableExtensions DisableDelayedExpansion
+set "speeds=1000"
+set "optimizations=-O2 -O3"
+set "verbose=0"
 for %%P in ("%~dp0.") do set "stage=%%~fP"
 for %%P in ("%~dp0..") do set "root=%%~fP"
 set "rounds=%~1"
@@ -36,44 +39,41 @@ if errorlevel 1 goto done
 set "benchmark=!work!\benchmark.exe"
 set "tempReport=!work!\report.md"
 
-echo [Stage C] Compiling with GCC -O3.
-gcc.exe -std=c17 -O3 -Wall -Wextra -Werror -I "!common!" -I "!indicators!" ^
-    "!stage!\main_stageC_perf.c" "!common!\fast_reader.c" "!indicators!\sma.c" "!indicators!\signal.c" -o "!benchmark!"
-if errorlevel 1 (
-    >&2 echo GCC failed to compile Stage C ^(exit code !errorlevel!^).
-    goto cleanup
-)
 type nul > "!work!\replay.tsv" || goto save_failed
 type nul > "!work!\rivals.tsv" || goto save_failed
-for %%S in (1 10 100 1000) do (
-    call :run_speed %%S
+set "optimization="
+for %%O in (!optimizations!) do (
+    call :run_optimization %%O
     if errorlevel 1 goto cleanup
+)
+if not defined optimization (
+    >&2 echo Select -O2, -O3, or both in the optimizations list.
+    goto cleanup
 )
 
 >"!tempReport!" (
     echo # Stage C performance on Windows
     echo(
-    echo Dataset `Datasets/stress_full.csv`. SMA windows 15/100. GCC flags `-std=c17 -O3 -Wall -Wextra -Werror`.
+    echo Dataset `Datasets/stress_full.csv`. SMA windows 15/100. GCC flags `-std=c17 -Wall -Wextra -Werror`. Optimization levels `!optimizations!`.
     echo(
     echo Processing latency measures the per-trade SMA and signal calculations. Replay elapsed time covers the replay loop, including pacing waits and terminal and LED work. Timing excludes CSV loading, shutdown and report writing.
     echo(
     echo ## Replay
     echo(
-    echo ^| Round ^| Speed ^| Trades ^| BUY ^| SELL ^| Avg. processing latency ^(ns^) ^| Worst processing latency ^(ns^) ^| Replay elapsed ^(ns^) ^|
-    echo ^| ---: ^| ---: ^| ---: ^| ---: ^| ---: ^| ---: ^| ---: ^| ---: ^|
+    echo ^| Optimization ^| Round ^| Speed ^| Trades ^| BUY ^| SELL ^| Avg. processing latency ^(ns^) ^| Worst processing latency ^(ns^) ^| Replay elapsed ^(ns^) ^|
+    echo ^| --- ^| ---: ^| ---: ^| ---: ^| ---: ^| ---: ^| ---: ^| ---: ^| ---: ^|
     type "!work!\replay.tsv"
     echo(
     echo ## Rival bot
     echo(
-    echo ^| Round ^| Speed ^| Rival reaction time ^(µs^) ^| P^&L ^(USDT^) ^| Bot wins ^| Rival wins ^|
-    echo ^| ---: ^| ---: ^| ---: ^| ---: ^| ---: ^| ---: ^|
+    echo ^| Optimization ^| Round ^| Speed ^| Rival reaction time ^(µs^) ^| P^&L ^(USDT^) ^| Bot wins ^| Rival wins ^|
+    echo ^| --- ^| ---: ^| ---: ^| ---: ^| ---: ^| ---: ^| ---: ^|
     type "!work!\rivals.tsv"
 ) || goto save_failed
 
 if exist "!report!\" goto save_failed
 move /y "!tempReport!" "!report!" >nul
 if errorlevel 1 goto save_failed
-type "!report!"
 echo Saved !report!
 set "status=0"
 goto cleanup
@@ -95,39 +95,70 @@ exit /b !status!
 >&2 echo Rounds must be a positive integer.
 exit /b 1
 
+:run_optimization
+set "optimization=%~1"
+if not "!optimization!"=="-O2" if not "!optimization!"=="-O3" (
+    >&2 echo Select -O2, -O3, or both in the optimizations list.
+    exit /b 1
+)
+echo [Stage C] Compiling with GCC !optimization!.
+gcc.exe -std=c17 !optimization! -Wall -Wextra -Werror -I "!common!" -I "!indicators!" ^
+    "!stage!\main_stageC_perf.c" "!common!\fast_reader.c" "!indicators!\sma.c" "!indicators!\signal.c" -o "!benchmark!"
+if errorlevel 1 (
+    >&2 echo GCC failed to compile Stage C with !optimization! ^(exit code !errorlevel!^).
+    exit /b 1
+)
+for %%S in (!speeds!) do (
+    call :run_speed %%S
+    if errorlevel 1 exit /b 1
+)
+exit /b 0
+
 :run_speed
 set "round=1"
 :run_round
-echo [Stage C] Running %~1x, round !round!.
+echo [Stage C] Running !optimization! at %~1x, round !round!.
 "!benchmark!" %~1 > "!work!\output.tsv"
 set "benchmarkStatus=!errorlevel!"
-rem Display replay messages while keeping timing rows out of the console output.
-findstr /b /v /l /c:"stageC_perf	" /c:"stageC_rival	" "!work!\output.tsv"
 if not "!benchmarkStatus!"=="0" (
-    >&2 echo Stage C failed at %~1x, round !round! ^(exit code !benchmarkStatus!^).
+    type "!work!\output.tsv" >&2
+    >&2 echo Stage C !optimization! failed at %~1x, round !round! ^(exit code !benchmarkStatus!^).
     exit /b 1
 )
-findstr /b /l /c:"stageC_perf	" /c:"stageC_rival	" "!work!\output.tsv" > "!work!\summary.tsv"
-if errorlevel 1 goto bad_rows
-findstr /v /r /x /c:"stageC_perf	[0-9]*	[1-9][0-9]*	[0-9]*	[0-9]*	[0-9][0-9]*\.[0-9][0-9]	[0-9]*	[0-9]*" ^
-    /c:"stageC_rival	[0-9][0-9]*\.[0-9]	[0-9][0-9]*\.[0-9][0-9]	[0-9][0-9]*	[0-9][0-9]*" /c:"stageC_rival	[0-9][0-9]*\.[0-9]	-[0-9][0-9]*\.[0-9][0-9]	[0-9][0-9]*	[0-9][0-9]*" "!work!\summary.tsv" >nul
-if not errorlevel 1 goto bad_rows
-if errorlevel 2 goto bad_rows
+if "!verbose!"=="1" (
+    findstr /b /v /l /c:"stageC_perf	" /c:"stageC_rival	" "!work!\output.tsv"
+)
 
 set "replay="
 for %%T in (0.1 0.5 1.0 2.0 5.0 10.0 20.0 50.0 100.0) do set "rival[%%T]="
-for /f "usebackq tokens=1-8 delims=	" %%A in ("!work!\summary.tsv") do (
-    if "%%A"=="stageC_perf" (
-        if "%%H"=="" goto bad_rows
-        if defined replay goto bad_rows
-        if not "%%B"=="%~1" goto bad_rows
-        set "replay=| !round! | %%B | %%C | %%D | %%E | %%F | %%G | %%H |"
-    ) else (
-        set "knownThreshold="
-        for %%T in (0.1 0.5 1.0 2.0 5.0 10.0 20.0 50.0 100.0) do if "%%B"=="%%T" set "knownThreshold=1"
-        if not defined knownThreshold goto bad_rows
-        if defined rival[%%B] goto bad_rows
-        set "rival[%%B]=| !round! | %~1 | %%B | %%C | %%D | %%E |"
+for /f "delims=" %%L in ('findstr /b /l /c:"stageC_perf	" /c:"stageC_rival	" "!work!\output.tsv"') do (
+    for /f "tokens=1-8 delims=	" %%A in ("%%L") do (
+        if "%%A"=="stageC_perf" (
+            if not "%%L"=="%%A	%%B	%%C	%%D	%%E	%%F	%%G	%%H" goto bad_rows
+            if "%%H"=="" goto bad_rows
+            if defined replay goto bad_rows
+            if not "%%B"=="%~1" goto bad_rows
+            set "tradeCount=%%C"
+            if "!tradeCount:~0,1!"=="0" goto bad_rows
+            set "decimal=%%F"
+            set "digits=%%C%%D%%E%%G%%H"
+            call :validate_number_fields
+            if errorlevel 1 goto bad_rows
+            set "replay=| !optimization! | !round! | %%B | %%C | %%D | %%E | %%F | %%G | %%H |"
+        ) else (
+            if not "%%L"=="%%A	%%B	%%C	%%D	%%E" goto bad_rows
+            if "%%E"=="" goto bad_rows
+            set "knownThreshold="
+            for %%T in (0.1 0.5 1.0 2.0 5.0 10.0 20.0 50.0 100.0) do if "%%B"=="%%T" set "knownThreshold=1"
+            if not defined knownThreshold goto bad_rows
+            if defined rival[%%B] goto bad_rows
+            set "decimal=%%C"
+            if "!decimal:~0,1!"=="-" set "decimal=!decimal:~1!"
+            set "digits=%%D%%E"
+            call :validate_number_fields
+            if errorlevel 1 goto bad_rows
+            set "rival[%%B]=| !optimization! | !round! | %~1 | %%B | %%C | %%D | %%E |"
+        )
     )
 )
 if not defined replay goto bad_rows
@@ -141,8 +172,17 @@ set /a round+=1
 goto run_round
 
 :bad_rows
->&2 echo Invalid or incomplete Stage C output at %~1x, round !round!.
+type "!work!\output.tsv" >&2
+>&2 echo Invalid or incomplete Stage C !optimization! output at %~1x, round !round!.
 exit /b 1
+
+:validate_number_fields
+if "!decimal:~3,1!"=="" exit /b 1
+if not "!decimal:~-3,1!"=="." exit /b 1
+set "digits=!digits!!decimal:~0,-3!!decimal:~-2!"
+for %%N in (0 1 2 3 4 5 6 7 8 9) do if defined digits set "digits=!digits:%%N=!"
+if defined digits exit /b 1
+exit /b 0
 
 rem Validate a positive signed 32-bit integer and normalize leading zeros.
 :positive_int
