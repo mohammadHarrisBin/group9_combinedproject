@@ -1,3 +1,0 @@
-Running Stage B Malloc Engine to write plots/signals_stageB_malloc.dat...
-./bin/stageB_malloc_engine
-make: *** [Makefile:272: plot_stageB_malloc] Interrupt
