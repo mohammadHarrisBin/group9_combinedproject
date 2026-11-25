@@ -16,7 +16,7 @@
 
 
 int main(void) {
-    if (!open_data(DEV)) {
+    if (!open_data(STRESS)) {
         fprintf(stderr, "Error: Could not open DEV dataset.\n");
         return 1;
     }

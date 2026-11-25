@@ -76,7 +76,7 @@ static inline int signal_update_fp_exact(SignalState *st, long long sum_short, l
 
 
 int main(void) {
-    if (!open_data(DEV)) {
+    if (!open_data(STRESS)) {
         fprintf(stderr, "Error: Could not open DEV dataset.\n");
         return 1;
     }

@@ -73,3 +73,51 @@ make plot_stageB_fp      : Generates plots/signals_stageB_fp.png
 make plot_stageB_malloc  : Generates plots/signals_stageB_malloc.png
 make plot_stageC         : Generates plots/rival_sweep.png
 ================================================================================
+
+WINDOWS:
+
+# 1. Build -O0 and run 5 trials per main engine
+make clean && make OPT=-O0 stageA stageA_plus stageB stageC
+
+for bin in stageA_engine stageA_plus_engine stageB_naive_engine stageB_running_engine stageB_fp_engine stageB_malloc_engine stageC_engine; do
+  echo "=== WSL -O0: $bin ==="
+  for i in 1 2 3 4 5; do
+    ./bin/$bin Datasets/Group09/stress_full.csv
+  done
+done
+
+# 2. Build -O2 and run 5 trials per main engine
+make clean && make OPT=-O2 stageA stageA_plus stageB stageC
+
+for bin in stageA_engine stageA_plus_engine stageB_naive_engine stageB_running_engine stageB_fp_engine stageB_malloc_engine stageC_engine; do
+  echo "=== WSL -O2: $bin ==="
+  for i in 1 2 3 4 5; do
+    ./bin/$bin Datasets/Group09/stress_full.csv
+  done
+done
+
+-- 
+
+PI 5:
+# Set performance governor once
+echo performance | sudo tee /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor
+
+# 1. Build -O0 and run 5 trials pinned to core 0
+make clean && make OPT=-O0 stageA stageA_plus stageB stageC
+
+for bin in stageA_engine stageA_plus_engine stageB_naive_engine stageB_running_engine stageB_fp_engine stageB_malloc_engine stageC_engine; do
+  echo "=== PI5 -O0: $bin ==="
+  for i in 1 2 3 4 5; do
+    sudo taskset -c 0 ./bin/$bin Datasets/Group09/stress_full.csv
+  done
+done
+
+# 2. Build -O2 and run 5 trials pinned to core 0
+make clean && make OPT=-O2 stageA stageA_plus stageB stageC
+
+for bin in stageA_engine stageA_plus_engine stageB_naive_engine stageB_running_engine stageB_fp_engine stageB_malloc_engine stageC_engine; do
+  echo "=== PI5 -O2: $bin ==="
+  for i in 1 2 3 4 5; do
+    sudo taskset -c 0 ./bin/$bin Datasets/Group09/stress_full.csv
+  done
+done

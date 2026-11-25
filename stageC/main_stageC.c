@@ -197,8 +197,8 @@ int main(int argc, char *argv[]) {
             led_on(LED_GREEN);
             led_off_timestamp = now_ns() + 150000000ULL; // Hold LED lit for 150 ms
 
-            printf("\033[1;32m[BUY SIGNAL #%d] Trade #%d | Price: %.2f | Latency: %llu ns | Lag: %lld ms\033[0m\n",
-                   buy_signals, i + 1, p, (unsigned long long)trade_latency, (long long)lag_ms);
+            // printf("\033[1;32m[BUY SIGNAL #%d] Trade #%d | Price: %.2f | Latency: %llu ns | Lag: %lld ms\033[0m\n",
+                //    buy_signals, i + 1, p, (unsigned long long)trade_latency, (long long)lag_ms);
 
             for (int k = 0; k < num_r; k++) {
                 // check if the current bot is not holding any BTC
@@ -233,8 +233,8 @@ int main(int argc, char *argv[]) {
             led_on(LED_RED);
             led_off_timestamp = now_ns() + 150000000ULL; // Hold LED lit for 150 ms
 
-            printf("\033[1;31m[SELL SIGNAL #%d] Trade #%d | Price: %.2f | Latency: %llu ns | Lag: %lld ms\033[0m\n",
-                   sell_signals, i + 1, p, (unsigned long long)trade_latency, (long long)lag_ms);
+            // printf("\033[1;31m[SELL SIGNAL #%d] Trade #%d | Price: %.2f | Latency: %llu ns | Lag: %lld ms\033[0m\n",
+                //    sell_signals, i + 1, p, (unsigned long long)trade_latency, (long long)lag_ms);
 
             for (int k = 0; k < num_r; k++) {
                 // check if the current bot is holding any BTC
