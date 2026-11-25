@@ -170,17 +170,15 @@ int main(int argc, char *argv[]) {
         sma_update(&short_sma, p);
         sma_update(&long_sma, p);
 
-        double s_val = 0.0;
         int short_ready = sma_is_full(&short_sma);
-        if (short_ready) s_val = sma_calculate_running(&short_sma);
-
-        double l_val = 0.0;
         int long_ready = sma_is_full(&long_sma);
-        if (long_ready) l_val = sma_calculate_running(&long_sma);
 
         int signal = SIGNAL_NONE;
         if (short_ready && long_ready) {
-            signal = signal_update(&sig_st, s_val, l_val);
+            const double diff = short_sma.running_sum * LONG_N
+                              - long_sma.running_sum * SHORT_N;
+            const double tolerance = SIGNAL_TOLERANCE * SHORT_N * LONG_N;
+            signal = signal_update_difference(&sig_st, diff, tolerance);
         }
 
         uint64_t proc_end = now_ns();
