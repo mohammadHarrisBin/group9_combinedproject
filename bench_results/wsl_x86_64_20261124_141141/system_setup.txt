@@ -1,0 +1,17 @@
+=== SYSTEM SETUP (wsl_x86_64) ===
+Linux LAPTOP-APVESCJT 6.18.58.1-microsoft-standard-WSL2 #1 SMP PREEMPT_DYNAMIC Tue Oct 27 00:24:11 UTC 2026 x86_64 GNU/Linux
+Architecture:                            x86_64
+CPU(s):                                  12
+On-line CPU(s) list:                     0-11
+Model name:                              Intel(R) Core(TM) i7-9750H CPU @ 2.60GHz
+Model:                                   158
+Thread(s) per core:                      2
+Core(s) per socket:                      6
+L1d cache:                               192 KiB (6 instances)
+L1i cache:                               192 KiB (6 instances)
+L2 cache:                                1.5 MiB (6 instances)
+L3 cache:                                12 MiB (1 instance)
+NUMA node0 CPU(s):                       0-11
+Vulnerability L1tf:                      Mitigation; PTE Inversion; VMX conditional cache flushes, SMT vulnerable
+gcc (Ubuntu 15.2.0-16ubuntu1) 15.2.0
+CPU Governor: N/A (virtualized/WSL or no cpufreq sysfs)

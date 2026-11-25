@@ -11,8 +11,8 @@ CFLAGS += -DSHORT_N=$(SHORT_N) -DLONG_N=$(LONG_N)
 BIN_DIR = bin
 PLOTS_DIR = plots
 
-# Default target: build everything (including Stage B variants and Stage C)
-all: directories stage0 test_tradeio test_vwap test_ohlc test_sma test_signal stageA stageA_plus stageB stageB_naive stageB_running stageB_fp stageB_malloc stageC
+# Default target: build everything (including Stage B variants, Stage C v0, and Stage C)
+all: directories stage0 test_tradeio test_vwap test_ohlc test_sma test_signal stageA stageA_plus stageB stageB_naive stageB_running stageB_fp stageB_malloc stageC_v0 stageC
 
 directories:
 	@mkdir -p $(BIN_DIR) $(PLOTS_DIR)
@@ -157,6 +157,13 @@ run_stageB_running: stageB_running
 # ==============================================================================
 # --- Stage C Targets ---
 # ==============================================================================
+stageC_v0: directories $(BIN_DIR)/stageC_v0_engine
+$(BIN_DIR)/stageC_v0_engine: stageC/main_stageC_v0.c \
+                           indicators/sma.c \
+                           indicators/signal.c \
+                           common/fast_reader.c
+	$(CC) $(CFLAGS) $^ -o $@
+
 stageC: directories $(BIN_DIR)/stageC_engine
 $(BIN_DIR)/stageC_engine: stageC/main_stageC.c \
                         indicators/vwap.c \
@@ -277,6 +284,21 @@ plot_stageB_malloc: stageB_malloc directories
 	                 '$(PLOTS_DIR)/signals_stageB_malloc.dat' using 1:(\$$5==-1?\$$2:NaN) title 'SELL' with points pt 7 ps 1.5 linecolor rgb '#ff0000'"
 	@echo "Done! Saved to $(PLOTS_DIR)/signals_stageB_malloc.png"
 
+plot_stageC_v0: stageC_v0 directories
+	@mkdir -p $(PLOTS_DIR)
+	@echo "Running Stage C v0 Engine to write $(PLOTS_DIR)/rival_sweep_v0.dat..."
+	./$(BIN_DIR)/stageC_v0_engine
+	@echo "Rendering $(PLOTS_DIR)/rival_sweep_v0.png with gnuplot..."
+	gnuplot -e "set terminal png size 1200,600; \
+	            set output '$(PLOTS_DIR)/rival_sweep_v0.png'; \
+	            set title 'Rival Bot Simulation (Stage C v0 Naive SMA): P&L vs Rival Reaction Time (R)'; \
+	            set xlabel 'Rival Reaction Time R (microseconds)'; \
+	            set ylabel 'Realized P&L (USDT)'; \
+	            set logscale x; \
+	            set grid; \
+	            plot '$(PLOTS_DIR)/rival_sweep_v0.dat' using 1:2 title 'Naive SMA Engine P&L' with linespoints pt 7 ps 1.5 linecolor rgb '#00aa00'"
+	@echo "Done! Saved to $(PLOTS_DIR)/rival_sweep_v0.png"
+
 plot_stageC: stageC directories
 	@mkdir -p $(PLOTS_DIR)
 	@echo "Running Stage C Engine to write $(PLOTS_DIR)/rival_sweep.dat..."
@@ -298,4 +320,4 @@ plot_stageC: stageC directories
 clean:
 	rm -rf $(BIN_DIR) $(PLOTS_DIR)
 
-.PHONY: all directories stage0 test_tradeio test_vwap test_ohlc test_sma test_signal stageA stageA_plus stageB stageB_naive stageB_running stageB_fp stageB_malloc stageC check clean
+.PHONY: all directories stage0 test_tradeio test_vwap test_ohlc test_sma test_signal stageA stageA_plus stageB stageB_naive stageB_running stageB_fp stageB_malloc stageC_v0 stageC check clean plot_stageC_v0

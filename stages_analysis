@@ -64,21 +64,42 @@ Throughput             : 4262010.32 trades/sec
 ==================================================================
 
 
-==================== STAGE C SUMMARY RESULTS ====================
-Total Trades Processed : 8928944
-BUY / SELL Signals     : 13452 BUY / 13438 SELL
-Average Trade Latency  : 53.47 ns
-Worst-Case Latency     : 461000 ns (461.000 us)
-==================================================================
+==================== STAGE C v0 SUMMARY ====================
 
---- RIVAL BOT SWEEP RESULTS (plots/rival_sweep.dat) ---
-R_us            P&L (USDT)      Wins    Losses
-0.1 us          114203.33               23123   2860
-0.5 us          114386.13               25877   106
-1.0 us          114387.37               25963   20
-2.0 us          114387.37               25976   7
-5.0 us          114388.63               25980   3
-10.0 us         114388.63               25981   2
-20.0 us         114388.64               25983   0
-50.0 us         114388.64               25983   0
-100.0 us                114388.64               25983   0
+Total Trades Processed : 8928944
+
+BUY / SELL Signals : 13494 BUY / 13345 SELL
+
+Ideal Naive SMA P&L : 114388.64 USDT
+
+Average Trade Latency : 188.84 ns
+
+Worst-Case Latency : 483700 ns (483.700 us)
+
+============================================================
+
+
+
+--- RIVAL BOT SWEEP RESULTS (plots/rival_sweep_v0.dat) ---
+
+R_us P&L (USDT) Wins Losses
+
+-----------------------------------------------------
+
+0.1 us 112803.45 1767 24216
+
+0.5 us 114417.80 25940 43
+
+1.0 us 114388.47 25975 8
+
+2.0 us 114388.63 25978 5
+
+5.0 us 114388.64 25981 2
+
+10.0 us 114388.64 25981 2
+
+20.0 us 114388.64 25982 1
+
+50.0 us 114388.64 25982 1
+
+100.0 us 114388.64 25983 0

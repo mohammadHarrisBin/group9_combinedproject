@@ -1,0 +1,25 @@
+Running Stage B Malloc Engine to write plots/signals_stageB_malloc.dat...
+./bin/stageB_malloc_engine
+Loaded 1000000 trades into Heap Memory (Exact malloc: 32000000 bytes). Starting benchmark...
+
+==================== STAGE B (DYNAMIC MALLOC) ====================
+Total Trades Processed : 1000000
+BUY Signals Raised     : 1704
+SELL Signals Raised    : 1693
+Total Run Time         : 260562800 ns (260.563 ms)
+Time Per Trade         : 260.56 ns/trade
+Throughput             : 3837846.38 trades/sec
+==================================================================
+Rendering plots/signals_stageB_malloc.png with gnuplot...
+gnuplot -e "set terminal png size 1200,600; \
+            set output 'plots/signals_stageB_malloc.png'; \
+            set title 'Trade Price and SMA Crossovers (Stage B Malloc)'; \
+            set xlabel 'Trade Number'; \
+            set ylabel 'Price (USDT)'; \
+            set grid; \
+            plot 'plots/signals_stageB_malloc.dat' using 1:2 title 'Price' with lines linecolor rgb '#888888', \
+                 'plots/signals_stageB_malloc.dat' using 1:3 title 'Short SMA' with lines linecolor rgb '#ff0000', \
+                 'plots/signals_stageB_malloc.dat' using 1:4 title 'Long SMA' with lines linecolor rgb '#0000ff', \
+                 'plots/signals_stageB_malloc.dat' using 1:(\$5==1?\$2:NaN) title 'BUY' with points pt 7 ps 1.5 linecolor rgb '#00cc00', \
+                 'plots/signals_stageB_malloc.dat' using 1:(\$5==-1?\$2:NaN) title 'SELL' with points pt 7 ps 1.5 linecolor rgb '#ff0000'"
+Done! Saved to plots/signals_stageB_malloc.png

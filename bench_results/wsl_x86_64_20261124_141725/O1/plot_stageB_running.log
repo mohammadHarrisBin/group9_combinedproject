@@ -1,0 +1,25 @@
+Running Stage B Running-Sum Engine to write plots/signals_stageB_running.dat...
+./bin/stageB_running_engine
+Loaded 8928944 trades into RAM. Starting Stage B Running-Sum benchmark...
+
+=========== STAGE B (RAM | Running SMA) =============
+Total Trades Processed : 8928944
+BUY Signals Raised     : 13494
+SELL Signals Raised    : 13345
+Total Run Time         : 350506302 ns (350.506 ms)
+Time Per Trade         : 39.26 ns/trade
+Throughput             : 25474417.86 trades/sec
+=======================================================
+Rendering plots/signals_stageB_running.png with gnuplot...
+gnuplot -e "set terminal png size 1200,600; \
+            set output 'plots/signals_stageB_running.png'; \
+            set title 'Trade Price and SMA Crossovers (Stage B Running-Sum O(1))'; \
+            set xlabel 'Trade Number'; \
+            set ylabel 'Price (USDT)'; \
+            set grid; \
+            plot 'plots/signals_stageB_running.dat' using 1:2 title 'Price' with lines linecolor rgb '#888888', \
+                 'plots/signals_stageB_running.dat' using 1:3 title 'Short SMA' with lines linecolor rgb '#ff0000', \
+                 'plots/signals_stageB_running.dat' using 1:4 title 'Long SMA' with lines linecolor rgb '#0000ff', \
+                 'plots/signals_stageB_running.dat' using 1:(\$5==1?\$2:NaN) title 'BUY' with points pt 7 ps 1.5 linecolor rgb '#00cc00', \
+                 'plots/signals_stageB_running.dat' using 1:(\$5==-1?\$2:NaN) title 'SELL' with points pt 7 ps 1.5 linecolor rgb '#ff0000'"
+Done! Saved to plots/signals_stageB_running.png

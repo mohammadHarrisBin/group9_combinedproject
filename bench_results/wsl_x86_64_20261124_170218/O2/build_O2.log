@@ -1,0 +1,26 @@
+rm -rf bin plots
+gcc -O2 -march=native -Wall -Wextra -Icommon -Iindicators -Istage0 -DSHORT_N=15 -DLONG_N=100 -O0 stage0/stage0_parta.c -o bin/parta_O0
+gcc -O2 -march=native -Wall -Wextra -Icommon -Iindicators -Istage0 -DSHORT_N=15 -DLONG_N=100 -O1 stage0/stage0_parta.c -o bin/parta_O1
+gcc -O2 -march=native -Wall -Wextra -Icommon -Iindicators -Istage0 -DSHORT_N=15 -DLONG_N=100 -O2 stage0/stage0_parta.c -o bin/parta_O2
+gcc -O2 -march=native -Wall -Wextra -Icommon -Iindicators -Istage0 -DSHORT_N=15 -DLONG_N=100 -O3 stage0/stage0_parta.c -o bin/parta_O3
+gcc -O2 -march=native -Wall -Wextra -Icommon -Iindicators -Istage0 -DSHORT_N=15 -DLONG_N=100 -O0 stage0/stage0_partb.c -o bin/partb_O0
+gcc -O2 -march=native -Wall -Wextra -Icommon -Iindicators -Istage0 -DSHORT_N=15 -DLONG_N=100 -O1 stage0/stage0_partb.c -o bin/partb_O1
+gcc -O2 -march=native -Wall -Wextra -Icommon -Iindicators -Istage0 -DSHORT_N=15 -DLONG_N=100 -O2 stage0/stage0_partb.c -o bin/partb_O2
+gcc -O2 -march=native -Wall -Wextra -Icommon -Iindicators -Istage0 -DSHORT_N=15 -DLONG_N=100 -O3 stage0/stage0_partb.c -o bin/partb_O3
+gcc -O2 -march=native -Wall -Wextra -Icommon -Iindicators -Istage0 -DSHORT_N=15 -DLONG_N=100 stageA/test_tradeio.c common/trade_io.c -o bin/test_tradeio
+gcc -O2 -march=native -Wall -Wextra -Icommon -Iindicators -Istage0 -DSHORT_N=15 -DLONG_N=100 stageA/test_vwap.c indicators/vwap.c common/trade_io.c -o bin/test_vwap
+gcc -O2 -march=native -Wall -Wextra -Icommon -Iindicators -Istage0 -DSHORT_N=15 -DLONG_N=100 stageA/test_ohlc.c indicators/ohlc.c common/trade_io.c -o bin/test_ohlc
+gcc -O2 -march=native -Wall -Wextra -Icommon -Iindicators -Istage0 -DSHORT_N=15 -DLONG_N=100 stageA/test_sma.c indicators/sma.c common/trade_io.c -o bin/test_sma
+gcc -O2 -march=native -Wall -Wextra -Icommon -Iindicators -Istage0 -DSHORT_N=15 -DLONG_N=100 stageA/test_signal.c indicators/signal.c indicators/sma.c common/trade_io.c -o bin/test_signal
+gcc -O2 -march=native -Wall -Wextra -Icommon -Iindicators -Istage0 -DSHORT_N=15 -DLONG_N=100 stageA/main_stageA.c indicators/vwap.c indicators/ohlc.c indicators/sma.c indicators/signal.c common/trade_io.c -o bin/stageA_engine
+gcc -O2 -march=native -Wall -Wextra -Icommon -Iindicators -Istage0 -DSHORT_N=15 -DLONG_N=100 stageA+/main_stageA+.c indicators/vwap.c indicators/ohlc.c indicators/sma.c indicators/signal.c common/fast_reader.c -o bin/stageA_plus_engine
+gcc -O2 -march=native -Wall -Wextra -Icommon -Iindicators -Istage0 -DSHORT_N=15 -DLONG_N=100 stageB/main_stageB.c indicators/vwap.c indicators/ohlc.c indicators/sma.c indicators/signal.c common/fast_reader.c -o bin/stageB_naive_engine
+gcc -O2 -march=native -Wall -Wextra -Icommon -Iindicators -Istage0 -DSHORT_N=15 -DLONG_N=100 stageB/main_stageB_running.c indicators/vwap.c indicators/ohlc.c indicators/sma.c indicators/signal.c common/fast_reader.c -o bin/stageB_running_engine
+gcc -O2 -march=native -Wall -Wextra -Icommon -Iindicators -Istage0 -DSHORT_N=15 -DLONG_N=100 stageB/main_stageB_fixedpoint.c indicators/vwap.c indicators/ohlc.c indicators/signal.c common/fast_reader.c -o bin/stageB_fp_engine
+gcc -O2 -march=native -Wall -Wextra -Icommon -Iindicators -Istage0 -DSHORT_N=15 -DLONG_N=100 stageB/main_stageB_malloc.c indicators/vwap.c indicators/ohlc.c indicators/sma.c indicators/signal.c common/fast_reader.c -o bin/stageB_malloc_engine
+gcc -O2 -march=native -Wall -Wextra -Icommon -Iindicators -Istage0 -DSHORT_N=15 -DLONG_N=100 stageC/main_stageC_v0.c indicators/sma.c indicators/signal.c common/fast_reader.c -o bin/stageC_v0_engine
+gcc -O2 -march=native -Wall -Wextra -Icommon -Iindicators -Istage0 -DSHORT_N=15 -DLONG_N=100 stageC/main_stageC.c indicators/vwap.c indicators/ohlc.c indicators/sma.c indicators/signal.c common/fast_reader.c -o bin/stageC_engine
+stageC/main_stageC.c: In function ‘main’:
+stageC/main_stageC.c:153:17: warning: variable ‘lag_ms’ set but not used [-Wunused-but-set-variable]
+  153 |         int64_t lag_ms = 0;
+      |                 ^~~~~~

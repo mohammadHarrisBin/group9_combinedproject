@@ -7,7 +7,7 @@
 #include "signal.h"
 #include "timing.h"
 
-#define MAX_TRADES 1000000
+#define MAX_TRADES 10000000
 
 #ifndef SHORT_N
 #define SHORT_N 15

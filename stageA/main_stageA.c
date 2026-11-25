@@ -17,7 +17,7 @@
 
 int main(void) {
     // Opening the dataset using the trade_io.c
-    if (!open_data(DEV)) {
+    if (!open_data(STRESS)) {
         fprintf(stderr, "Error: Could not open DEV dataset.\n");
         return 1;
     }

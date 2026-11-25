@@ -34,10 +34,10 @@ int main(void) {
     // First, scan the CSV file with a fast byte-buffer to count exact newlines.
     // This avoids over-allocating unused RAM or hitting hard-coded limits.
     // =========================================================================
-    FILE *fp_count = fopen("Datasets/dev_1M.csv", "r");
+    FILE *fp_count = fopen("Datasets/stress_full.csv", "r");
     if (!fp_count) {
         // Fallback check if executing directly from the dataset folder
-        fp_count = fopen("dev_1M.csv", "r");
+        fp_count = fopen("Datasets/stress_full.csv", "r");
     }
 
     size_t line_count = 0;

@@ -20,7 +20,7 @@
     load every trade into a fixed size global 
     array of structs 
 */
- #define MAX_TRADES 1000000
+ #define MAX_TRADES 10000000
 
 // define a Trade struct
 typedef struct {

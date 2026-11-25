@@ -1,123 +1,90 @@
 ================================================================================
-            CSC1103/1104 MINI-PROJECT MAKEFILE COMMAND REFERENCE SHEET
+MAKEFILE VARIABLES & COMPILER FLAGS
 ================================================================================
+OPT       Optimization level (Default: -O2). Examples: -O0, -O1, -O2, -O3
+CPU       Architecture/CPU tuning flags (Default: empty).
+          Examples:
+          - Raspberry Pi 5 (Cortex-A76): CPU="-mcpu=cortex-a76" or CPU="-march=native"
+          - x86_64 Laptop / WSL:         CPU="-march=native" or CPU="-mtune=native"
+SHORT_N   Short SMA window size (Default: 15, test20 uses 3)
+LONG_N    Long SMA window size (Default: 100, test20 uses 5)
 
-1. DEFAULT GROUP 09 BUILD & VALIDATION
---------------------------------------------------------------------------------
-make                : Builds all binaries for Group 09 (Short=15, Long=100)
-make check          : Runs test20 correctness validation (Short=3, Long=5)
-make clean          : Removes bin/ and plots/ build directories
-make clean && make  : Performs a complete fresh rebuild of all targets
+Example build with overrides:
+make clean && make all OPT=-O3 CPU="-mcpu=cortex-a76" SHORT_N=15 LONG_N=100
 
+================================================================================
+BUILD COMMANDS (Compile Only)
+================================================================================
+make all                Build every target (Stage 0, tests, A, A+, B variants, C)
+make clean              Delete bin/ and plots/ directories
+make directories        Create bin/ and plots/ directories
 
-2. COMPILATION & BUILD TARGETS
---------------------------------------------------------------------------------
-make stage0         : Builds Stage 0 loop & recursion targets (-O0, -O1, -O2, -O3)
-make test_tradeio   : Builds standalone trade_io module test
-make test_vwap      : Builds standalone VWAP indicator test
-make test_ohlc      : Builds standalone OHLC bar indicator test
-make test_sma       : Builds standalone SMA indicator test
-make test_signal    : Builds standalone Signal Crossover test
-make stageA         : Builds Stage A streaming engine (trade_io)
-make test20         : Builds test20 validation engine (Short=3, Long=5)
-make stageA_plus    : Builds Stage A+ fast parser engine (fast_reader)
-make stageB         : Builds all 4 Stage B variants (naive, running, fp, malloc)
-make stageB_naive   : Builds Stage B O(N) naive array engine
-make stageB_running : Builds Stage B O(1) running-sum engine
-make stageB_fp      : Builds Stage B fixed-point integer engine (long long)
-make stageB_malloc  : Builds Stage B exact-fit dynamic memory engine
-make stageC         : Builds Stage C real-time replay & rival bot engine
+# Stage 0 (Compiler optimization comparison)
+make stage0             Builds bin/parta_O0..O3 and bin/partb_O0..O3
 
+# Stage A & Indicator Unit Tests
+make test_tradeio       Build bin/test_tradeio
+make test_vwap          Build bin/test_vwap
+make test_ohlc          Build bin/test_ohlc
+make test_sma           Build bin/test_sma
+make test_signal        Build bin/test_signal
+make stageA             Build bin/stageA_engine
+make test20             Build bin/test20_stageA_engine (hardcodes SHORT_N=3 LONG_N=5)
+make check              Build test20, run it, and diff against Datasets/Group09/test20_expected.txt
 
-3. PARAMETER & BENCHMARK OVERRIDES (COMPILER FLAGS)
---------------------------------------------------------------------------------
-# Test Other Group Parameters (e.g. Group 01: 10/60, Group 15: 10/200)
-make SHORT_N=10 LONG_N=60
-make SHORT_N=10 LONG_N=200
+# Stage A+ (Fast reader / I/O optimization)
+make stageA_plus        Build bin/stageA_plus_engine
 
-# Optimization & Architecture Flags (Pi 5 Cortex-A76 Benchmarking)
-make OPT=-O3
-make CPU=-mcpu=cortex-a76
-make OPT=-O3 CPU=-mcpu=cortex-a76
+# Stage B (Algorithmic & Memory Variants)
+make stageB             Build all 4 Stage B engines below
+make stageB_naive       Build bin/stageB_naive_engine (Naive O(N) SMA)
+make stageB_running     Build bin/stageB_running_engine (Running-sum O(1) SMA)
+make stageB_fp          Build bin/stageB_fp_engine (Fixed-point long long arithmetic)
+make stageB_malloc      Build bin/stageB_malloc_engine (Dynamic malloc allocation)
 
+# Stage C (Rival-bot reaction race simulation)
+make stageC             Build bin/stageC_engine
 
-4. BINARY EXECUTION COMMANDS
---------------------------------------------------------------------------------
-# Stage 0 Baselines
-./bin/parta_O0
-./bin/parta_O2
-./bin/partb_O0
-./bin/partb_O2
-
-# Core Engines (Group 09)
+================================================================================
+RUN & PLOT COMMANDS (Execute Binaries & Generate Gnuplot PNGs)
+================================================================================
+# Direct Binary Execution
+./bin/parta_O0          (also parta_O1, parta_O2, parta_O3)
+./bin/partb_O0          (also partb_O1, partb_O2, partb_O3)
+./bin/test_tradeio
+./bin/test_vwap
+./bin/test_ohlc
+./bin/test_sma
+./bin/test_signal
 ./bin/stageA_engine
+./bin/test20_stageA_engine
 ./bin/stageA_plus_engine
-./bin/stageB_naive_engine
-./bin/stageB_running_engine
+make run_stageB_naive       (or ./bin/stageB_naive_engine)
+make run_stageB_running     (or ./bin/stageB_running_engine)
 ./bin/stageB_fp_engine
 ./bin/stageB_malloc_engine
+./bin/stageC_engine 1000    (takes rival reaction time R in microseconds as arg)
 
-# Stage C Replay & Rival Bot Engine (Replay Speed Argument)
-./bin/stageC_engine 1000   # Replay at 1000x speed
-./bin/stageC_engine 100    # Replay at 100x speed
-./bin/stageC_engine 1      # Replay at 1x real-time speed
+# Automated Run + Gnuplot Rendering (Outputs .dat and .png to plots/)
+make plot_stageA            -> plots/signals_stageA.dat & .png
+make plot_stageA_plus       -> plots/signals_stageA_plus.dat & .png
+make plot_stageB_naive      -> plots/signals_stageB_naive.dat & .png
+make plot_stageB_running    -> plots/signals_stageB_running.dat & .png
+make plot_stageB_fp         -> plots/signals_stageB_fp.dat & .png
+make plot_stageB_malloc     -> plots/signals_stageB_malloc.dat & .png
+make plot_stageC            -> plots/rival_sweep.dat & plots/rival_sweep.png (runs with R=1000)
 
-
-5. PLOT & GRAPH GENERATION COMMANDS (BUILD + RUN + GNUPLOT)
---------------------------------------------------------------------------------
-make plot_stageA         : Generates plots/signals_stageA.png
-make plot_stageA_plus    : Generates plots/signals.png
-make plot_stageB_naive   : Generates plots/signals_stageB_naive.png
-make plot_stageB_running : Generates plots/signals_stageB_running.png
-make plot_stageB_fp      : Generates plots/signals_stageB_fp.png
-make plot_stageB_malloc  : Generates plots/signals_stageB_malloc.png
-make plot_stageC         : Generates plots/rival_sweep.png
 ================================================================================
+COMMON BENCHMARK COMBOS (WSL vs Raspberry Pi 5)
+================================================================================
+# 1. Clean + build with -O2 and native CPU tuning (WSL or Pi 5):
+make clean && make all OPT=-O2 CPU="-march=native"
 
-WINDOWS:
+# 2. Clean + build specifically for Raspberry Pi 5 Cortex-A76 with -O3:
+make clean && make all OPT=-O3 CPU="-mcpu=cortex-a76"
 
-# 1. Build -O0 and run 5 trials per main engine
-make clean && make OPT=-O0 stageA stageA_plus stageB stageC
+# 3. Run full correctness + Stage B comparison:
+make check && make run_stageB_naive && make run_stageB_running && ./bin/stageB_fp_engine && ./bin/stageB_malloc_engine
 
-for bin in stageA_engine stageA_plus_engine stageB_naive_engine stageB_running_engine stageB_fp_engine stageB_malloc_engine stageC_engine; do
-  echo "=== WSL -O0: $bin ==="
-  for i in 1 2 3 4 5; do
-    ./bin/$bin Datasets/Group09/stress_full.csv
-  done
-done
-
-# 2. Build -O2 and run 5 trials per main engine
-make clean && make OPT=-O2 stageA stageA_plus stageB stageC
-
-for bin in stageA_engine stageA_plus_engine stageB_naive_engine stageB_running_engine stageB_fp_engine stageB_malloc_engine stageC_engine; do
-  echo "=== WSL -O2: $bin ==="
-  for i in 1 2 3 4 5; do
-    ./bin/$bin Datasets/Group09/stress_full.csv
-  done
-done
-
--- 
-
-PI 5:
-# Set performance governor once
-echo performance | sudo tee /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor
-
-# 1. Build -O0 and run 5 trials pinned to core 0
-make clean && make OPT=-O0 stageA stageA_plus stageB stageC
-
-for bin in stageA_engine stageA_plus_engine stageB_naive_engine stageB_running_engine stageB_fp_engine stageB_malloc_engine stageC_engine; do
-  echo "=== PI5 -O0: $bin ==="
-  for i in 1 2 3 4 5; do
-    sudo taskset -c 0 ./bin/$bin Datasets/Group09/stress_full.csv
-  done
-done
-
-# 2. Build -O2 and run 5 trials pinned to core 0
-make clean && make OPT=-O2 stageA stageA_plus stageB stageC
-
-for bin in stageA_engine stageA_plus_engine stageB_naive_engine stageB_running_engine stageB_fp_engine stageB_malloc_engine stageC_engine; do
-  echo "=== PI5 -O2: $bin ==="
-  for i in 1 2 3 4 5; do
-    sudo taskset -c 0 ./bin/$bin Datasets/Group09/stress_full.csv
-  done
-done
+# 4. Generate all plots in one go:
+make plot_stageA plot_stageA_plus plot_stageB_naive plot_stageB_running plot_stageB_fp plot_stageB_malloc plot_stageC

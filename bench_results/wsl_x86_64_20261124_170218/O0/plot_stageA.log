@@ -1,0 +1,25 @@
+Running Stage A Engine to write plots/signals_stageA.dat...
+./bin/stageA_engine
+
+==================== STAGE A (STREAMING) ====================
+Total Trades Processed : 8928944
+BUY Signals Raised     : 13494
+SELL Signals Raised    : 13345
+Total Run Time         : 351714030182 ns (351714.030 ms)
+Time Per Trade         : 39390.33 ns/trade
+Throughput             : 25386.94 trades/sec
+=============================================================
+trade_io: reading Datasets/stress_full.csv
+Rendering plots/signals_stageA.png with gnuplot...
+gnuplot -e "set terminal png size 1200,600; \
+            set output 'plots/signals_stageA.png'; \
+            set title 'Trade Price and SMA Crossovers (Stage A)'; \
+            set xlabel 'Trade Number'; \
+            set ylabel 'Price (USDT)'; \
+            set grid; \
+            plot 'plots/signals_stageA.dat' using 1:2 title 'Price' with lines linecolor rgb '#888888', \
+                 'plots/signals_stageA.dat' using 1:3 title 'Short SMA' with lines linecolor rgb '#ff0000', \
+                 'plots/signals_stageA.dat' using 1:4 title 'Long SMA' with lines linecolor rgb '#0000ff', \
+                 'plots/signals_stageA.dat' using 1:(\$5==1?\$2:NaN) title 'BUY' with points pt 7 ps 1.5 linecolor rgb '#00cc00', \
+                 'plots/signals_stageA.dat' using 1:(\$5==-1?\$2:NaN) title 'SELL' with points pt 7 ps 1.5 linecolor rgb '#ff0000'"
+Done! Saved to plots/signals_stageA.png
