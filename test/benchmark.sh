@@ -26,7 +26,16 @@ for cfg in "-O0|" "-O1|" "-O2|" "-O3|" "-O3|-mcpu=cortex-a76"; do
   CPU_FLAG="${cfg##*|}"
   echo "--- Stage 0 (${OPT_FLAG} ${CPU_FLAG}) ---"
   make clean && make OPT="$OPT_FLAG" CPU="$CPU_FLAG" stage0 2>&1 || true
-  for s0bin in parta_O0 parta_O1 parta_O2 parta_O3 partb_O0 partb_O1 partb_O2 partb_O3; do
+  for s0bin in parta_O0 parta_O1 parta_O2 parta_O3; do
+    if [ -x "./bin/$s0bin" ]; then
+      echo ">>> Running $s0bin (${OPT_FLAG} ${CPU_FLAG}) with N=100000000 <<<"
+      echo 100000000 | sudo taskset -c 0 ./bin/"$s0bin" 2>&1 || true
+      if command -v perf >/dev/null 2>&1; then
+        echo 100000000 | sudo perf stat -r 3 -e task-clock,cycles,instructions,branches,branch-misses,cache-references,cache-misses           taskset -c 0 ./bin/"$s0bin" 2>&1 || true
+      fi
+    fi
+  done
+  for s0bin in partb_O0 partb_O1 partb_O2 partb_O3; do
     if [ -x "./bin/$s0bin" ]; then
       echo ">>> Running $s0bin (${OPT_FLAG} ${CPU_FLAG}) <<<"
       sudo taskset -c 0 ./bin/"$s0bin" 2>&1 || true
