@@ -224,6 +224,7 @@ int main(void) {
                     bots[k].rival_wins);
         }
         fclose(sweep_out);
+        
     }
 
     return 0;
