@@ -1,56 +1,25 @@
-========================================== 
-=== WINDOWS BENCHMARK SUITE (CSC1103) === 
-========================================== 
-OS Name:                       Microsoft Windows 11 Education
-OS Version:                    10.0.26200 N/A Build 26200
-1:gcc (Rev8, Built by MSYS2 project) 15.2.0
- 
-========================================== 
-=== CORRECTNESS CHECK: test20.csv === 
-========================================== 
+==========================================
+=== WINDOWS BENCHMARK SUITE (CSC1103) ===
+==========================================
+MINGW64_NT-10.0-26200 LAPTOP-APVESCJT 3.6.10-710e5275.x86_64 2026-07-28 09:32 UTC x86_64 Msys
+gcc.exe (Rev8, Built by MSYS2 project) 15.2.0
+
+==========================================
+=== BUILDING SUITE: OPT=-O0 ===
+==========================================
 rm -rf bin plots
-gcc -O2  -Wall -Wextra -Icommon -Iindicators -Istage0 -DSHORT_N=3 -DLONG_N=5 stageA/test20_stageA.c indicators/vwap.c indicators/ohlc.c indicators/sma.c indicators/signal.c common/trade_io.c -o bin/test20_stageA_engine
+gcc -O0  -Wall -Wextra -Icommon -Iindicators -Istage0 -DSHORT_N=15 -DLONG_N=100 stageA/main_stageA.c indicators/vwap.c indicators/ohlc.c indicators/sma.c indicators/signal.c common/trade_io.c -o bin/stageA_engine
+gcc -O0  -Wall -Wextra -Icommon -Iindicators -Istage0 -DSHORT_N=15 -DLONG_N=100 stageA+/main_stageA+.c indicators/vwap.c indicators/ohlc.c indicators/sma.c indicators/signal.c common/fast_reader.c -o bin/stageA_plus_engine
+gcc -O0  -Wall -Wextra -Icommon -Iindicators -Istage0 -DSHORT_N=15 -DLONG_N=100 stageB/main_stageB.c indicators/vwap.c indicators/ohlc.c indicators/sma.c indicators/signal.c common/fast_reader.c -o bin/stageB_naive_engine
+gcc -O0  -Wall -Wextra -Icommon -Iindicators -Istage0 -DSHORT_N=15 -DLONG_N=100 stageB/main_stageB_running.c indicators/vwap.c indicators/ohlc.c indicators/sma.c indicators/signal.c common/fast_reader.c -o bin/stageB_running_engine
+gcc -O0  -Wall -Wextra -Icommon -Iindicators -Istage0 -DSHORT_N=15 -DLONG_N=100 stageB/main_stageB_fixedpoint.c indicators/vwap.c indicators/ohlc.c indicators/signal.c common/fast_reader.c -o bin/stageB_fp_engine
+gcc -O0  -Wall -Wextra -Icommon -Iindicators -Istage0 -DSHORT_N=15 -DLONG_N=100 stageB/main_stageB_malloc.c indicators/vwap.c indicators/ohlc.c indicators/sma.c indicators/signal.c common/fast_reader.c -o bin/stageB_malloc_engine
+gcc -O0  -Wall -Wextra -Icommon -Iindicators -Istage0 -DSHORT_N=15 -DLONG_N=100 stageC/main_stageC_v0.c indicators/sma.c indicators/signal.c common/fast_reader.c -o bin/stageC_v0_engine
+gcc -O0  -Wall -Wextra -Icommon -Iindicators -Istage0 -DSHORT_N=15 -DLONG_N=100 stageC/main_stageC.c indicators/vwap.c indicators/ohlc.c indicators/sma.c indicators/signal.c common/fast_reader.c -o bin/stageC_engine
+------------------------------------------
+>>> WINDOWS (-O0): stageC_v0_engine <<<
+------------------------------------------
+--- Trial 1 (-O0, stageC_v0_engine) ---
+=== STAGE C v0 (NAIVE SMA + RIVAL BOT SWEEP) ===
+Streaming STRESS with Naive SMA (SHORT_N=15, LONG_N=100, no malloc)...
 
-==================== STAGE A (STREAMING - TEST20) ====================
-Total Trades Processed : 20
-BUY Signals Raised     : 2
-SELL Signals Raised    : 0
-Total Run Time         : 337100 ns (0.337 ms)
-Time Per Trade         : 16855.00 ns/trade
-Throughput             : 59329.58 trades/sec
-=============================================================
-trade_io: reading Datasets/Group09/test20.csv
-Executing Full Stage A Engine on TEST20 dataset...
----------------------------------------------------------------------------------------------------------
-Trade | Price      | Qty      | VWAP           | SMA(3)         | SMA(5)         | Signal
----------------------------------------------------------------------------------------------------------
-1     | 77691.94   | 0.00007000 | 77691.94000000 | -              | -              |       
-2     | 77691.94   | 0.01916000 | 77691.94000000 | -              | -              |       
-3     | 77691.93   | 0.01293000 | 77691.93597948 | 77691.93666667 | -              |       
-4     | 77691.94   | 0.08744000 | 77691.93891890 | 77691.93666667 | -              |       
-5     | 77691.94   | 0.00010000 | 77691.93891980 | 77691.93666667 | 77691.93800000 |       
-6     | 77691.94   | 0.00007000 | 77691.93892043 | 77691.94000000 | 77691.93800000 | BUY   
-7     | 77691.94   | 0.00007000 | 77691.93892106 | 77691.94000000 | 77691.93800000 |       
-8     | 77691.94   | 0.00007000 | 77691.93892169 | 77691.94000000 | 77691.94000000 |       
-9     | 77691.94   | 0.00007000 | 77691.93892232 | 77691.94000000 | 77691.94000000 |       
-10    | 77691.94   | 0.00007000 | 77691.93892295 | 77691.94000000 | 77691.94000000 |       
-11    | 77691.95   | 0.00007000 | 77691.93892940 | 77691.94333333 | 77691.94200000 | BUY   
-12    | 77691.95   | 0.00002000 | 77691.93893125 | 77691.94666667 | 77691.94400000 |       
-13    | 77691.95   | 0.00005000 | 77691.93893585 | 77691.95000000 | 77691.94600000 |       
-14    | 77691.96   | 0.00007000 | 77691.93894811 | 77691.95333333 | 77691.95000000 |       
-15    | 77691.96   | 0.00007000 | 77691.93896036 | 77691.95666667 | 77691.95400000 |       
-16    | 77694.41   | 0.00014000 | 77691.94183199 | 77692.77666667 | 77692.44600000 |       
-17    | 77694.41   | 0.00007000 | 77691.94326531 | 77693.59333333 | 77692.93800000 |       
-18    | 77694.41   | 0.00007000 | 77691.94469696 | 77694.41000000 | 77693.43000000 |       
-19    | 77694.41   | 0.00007000 | 77691.94612695 | 77694.41000000 | 77693.92000000 |       
-20    | 77694.48   | 0.00008000 | 77691.94780556 | 77694.43333333 | 77694.42400000 |       
----------------------------------------------------------------------------------------------------------
-Final VWAP: 77691.94780556
-Signals: 2 BUY, 0 SELL
-
-One-second OHLC bars (second = time / 1,000,000)
-second       open             high             low              close            trades
-1787303218   77691.94000000   77694.48000000   77691.93000000   77694.48000000   20    
-========================================== 
-=== STAGE 0: MICROBENCHMARKS === 
-========================================== 

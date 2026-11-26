@@ -1,0 +1,69 @@
+==========================================
+=== WINDOWS BENCHMARK SUITE (CSC1103) ===
+==========================================
+MINGW64_NT-10.0-26200 LAPTOP-APVESCJT 3.6.10-710e5275.x86_64 2026-07-28 09:32 UTC x86_64 Msys
+gcc.exe (Rev8, Built by MSYS2 project) 15.2.0
+
+==========================================
+=== CORRECTNESS CHECK: test20.csv ===
+==========================================
+make: *** No rule to make target 'clean'.  Stop.
+==========================================
+=== STAGE 0: MICROBENCHMARKS ===
+==========================================
+--- Stage 0 (-O0) ---
+make: *** No rule to make target 'clean'.  Stop.
+--- Stage 0 (-O1) ---
+make: *** No rule to make target 'clean'.  Stop.
+--- Stage 0 (-O2) ---
+make: *** No rule to make target 'clean'.  Stop.
+--- Stage 0 (-O3) ---
+make: *** No rule to make target 'clean'.  Stop.
+==========================================
+=== BUILDING SUITE: OPT=-O0 ===
+==========================================
+make: *** No rule to make target 'clean'.  Stop.
+[SKIP] ./bin/stageA_engine not built
+[SKIP] ./bin/stageA_plus_engine not built
+[SKIP] ./bin/stageB_naive_engine not built
+[SKIP] ./bin/stageB_running_engine not built
+[SKIP] ./bin/stageB_fp_engine not built
+[SKIP] ./bin/stageB_malloc_engine not built
+[SKIP] ./bin/stageC_v0_engine not built
+[SKIP] ./bin/stageC_engine not built
+==========================================
+=== BUILDING SUITE: OPT=-O1 ===
+==========================================
+make: *** No rule to make target 'clean'.  Stop.
+[SKIP] ./bin/stageA_engine not built
+[SKIP] ./bin/stageA_plus_engine not built
+[SKIP] ./bin/stageB_naive_engine not built
+[SKIP] ./bin/stageB_running_engine not built
+[SKIP] ./bin/stageB_fp_engine not built
+[SKIP] ./bin/stageB_malloc_engine not built
+[SKIP] ./bin/stageC_v0_engine not built
+[SKIP] ./bin/stageC_engine not built
+==========================================
+=== BUILDING SUITE: OPT=-O2 ===
+==========================================
+make: *** No rule to make target 'clean'.  Stop.
+[SKIP] ./bin/stageA_engine not built
+[SKIP] ./bin/stageA_plus_engine not built
+[SKIP] ./bin/stageB_naive_engine not built
+[SKIP] ./bin/stageB_running_engine not built
+[SKIP] ./bin/stageB_fp_engine not built
+[SKIP] ./bin/stageB_malloc_engine not built
+[SKIP] ./bin/stageC_v0_engine not built
+[SKIP] ./bin/stageC_engine not built
+==========================================
+=== BUILDING SUITE: OPT=-O3 ===
+==========================================
+make: *** No rule to make target 'clean'.  Stop.
+[SKIP] ./bin/stageA_engine not built
+[SKIP] ./bin/stageA_plus_engine not built
+[SKIP] ./bin/stageB_naive_engine not built
+[SKIP] ./bin/stageB_running_engine not built
+[SKIP] ./bin/stageB_fp_engine not built
+[SKIP] ./bin/stageB_malloc_engine not built
+[SKIP] ./bin/stageC_v0_engine not built
+[SKIP] ./bin/stageC_engine not built

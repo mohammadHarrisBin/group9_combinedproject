@@ -4,6 +4,7 @@
 #include "sma.h"
 #include "signal.h"
 #include "timing.h"
+#include "led.h"
 
 // Default window sizes if -D flags aren't passed during make
 #ifndef SHORT_N
@@ -34,6 +35,9 @@ int main(void) {
     fprintf(stderr, "=== STAGE C v0 (NAIVE SMA + RIVAL BOT SWEEP) ===\n");
     fprintf(stderr, "Streaming STRESS with Naive SMA (SHORT_N=%d, LONG_N=%d, no malloc)...\n\n",
             SHORT_N, LONG_N);
+
+    led_init();
+    uint64_t led_off_timestamp = 0; // Non-blocking LED off deadline
 
     double short_buf[SHORT_N];
     double long_buf[LONG_N];
@@ -79,9 +83,16 @@ int main(void) {
     int has_cur = read_trade(&cur_ts, &cur_price, &cur_qty, &cur_buy);
     int has_next = has_cur ? read_trade(&next_ts, &next_price, &next_qty, &next_buy) : 0;
 
-    // No sleep/replay pacing, LEDs, VWAP, or OHLC here — keeping it focused on naive SMA + bot race
+    // No sleep/replay pacing, VWAP, or OHLC here — keeping it focused on naive SMA + bot race
     while (has_cur) {
         trade_count++;
+
+        // --- Non-Blocking LED Auto-Off Check ---
+        if (led_off_timestamp > 0 && now_ns() >= led_off_timestamp) {
+            led_off(LED_GREEN);
+            led_off(LED_RED);
+            led_off_timestamp = 0;
+        }
 
         uint64_t proc_start = now_ns();
 
@@ -116,6 +127,8 @@ int main(void) {
 
         if (signal == SIGNAL_BUY) {
             buy_signals++;
+            led_on(LED_GREEN);
+            led_off_timestamp = now_ns() + 150000000ULL; // Hold LED lit for 150 ms
 
             // Update baseline P&L only when flat so buys and sells stay paired
             if (!ideal_holding) {
@@ -139,6 +152,8 @@ int main(void) {
             }
         } else if (signal == SIGNAL_SELL) {
             sell_signals++;
+            led_on(LED_RED);
+            led_off_timestamp = now_ns() + 150000000ULL; // Hold LED lit for 150 ms
 
             if (ideal_holding) {
                 ideal_sell_revenue += p;
@@ -168,6 +183,9 @@ int main(void) {
         has_next = has_cur ? read_trade(&next_ts, &next_price, &next_qty, &next_buy) : 0;
     }
 
+    led_off(LED_GREEN);
+    led_off(LED_RED);
+    led_cleanup();
     close_trades();
 
     double avg_latency_ns = (trade_count > 0) ? ((double)total_latency_ns / (double)trade_count) : 0.0;
